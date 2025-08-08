@@ -31,10 +31,15 @@ function initClient() {
         // Handle auth status changes
         gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
         updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+        
     }, (error) => {
         console.error('Google API init error:', error);
         updateDriveStatus('Connection failed', 'disconnected');
         showErrorMessage(`API Error: ${error.details || error.message}`);
+
+    }).catch(error => {
+        console.error('Init error:', error);
+        showErrorMessage(`API Init Failed: ${error.error || error.details}`);
     });
 }
 
@@ -212,6 +217,27 @@ function updateSigninStatus(isSignedIn) {
         gapi.auth2.getAuthInstance().signIn();
     }
 }
+
+function showSuccessMessage(message) {
+    const element = document.getElementById('successMessage');
+    element.textContent = message;
+    element.style.display = 'block';
+    setTimeout(() => element.style.display = 'none', 5000);
+}
+
+function showErrorMessage(message) {
+    const element = document.getElementById('errorMessage');
+    element.textContent = message;
+    element.style.display = 'block';
+    setTimeout(() => element.style.display = 'none', 5000);
+}
+
+function hideMessages() {
+    document.getElementById('successMessage').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'none';
+}
+
+
 
 // Other functions (closeLightbox, changeMedia, etc.) remain the same as before
 // ... [Keep all your existing lightbox and utility functions] ...
