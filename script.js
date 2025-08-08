@@ -2,7 +2,6 @@
 const DRIVE_FOLDER_ID = '18C7Dq4piMVvx8vRmbgYZScpaJsX87gVT';
 const API_KEY = 'AIzaSyBTlcx8EZ2Ez3XUJD6CU-TooQZoaiqffEc';
 const CLIENT_ID = '43317865979-ov2f56afttm1k76sm9qsqlstq3a1l3qi.apps.googleusercontent.com';
-const CLIENT_SECRET = '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'
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
 // Admin and state variables
