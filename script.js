@@ -1,19 +1,14 @@
-// Avoid duplicate execution
-if (typeof window.MEMORIAL_INITIALIZED === 'undefined') {
-window.MEMORIAL_INITIALIZED = true;
-
 // ===== CONFIGURATION =====
 const DRIVE_FOLDER_ID = '18C7Dq4piMVvx8vRmbgYZScpaJsX87gVT';
 const API_KEY = 'AIzaSyBTlcx8EZ2Ez3XUJD6CU-TooQZoaiqffEc';
 const CLIENT_ID = '43317865979-ov2f56afttm1k76sm9qsqlstq3a1l3qi.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 const ADMIN_PASSWORD = "porrazzo123";
 
 // ===== STATE VARIABLES =====
 let isAdminMode = false;
 let currentMediaIndex = 0;
 let mediaItems = [];
-let gapiInitialized = false;
+let tokenClient;
 
 // ===== MESSAGE FUNCTIONS =====
 function showSuccessMessage(message) {
@@ -34,70 +29,53 @@ function showErrorMessage(message) {
     }
 }
 
-function hideMessages() {
-    const success = document.getElementById('successMessage');
-    const error = document.getElementById('errorMessage');
-    if (success) success.style.display = 'none';
-    if (error) error.style.display = 'none';
-}
-
-// ===== DRIVE STATUS =====
-function updateDriveStatus(message, status) {
-    const statusElement = document.getElementById('driveStatus');
-    if (statusElement) {
-        statusElement.innerHTML = `<i class="fas fa-hdd"></i> <span>${message}</span>`;
-        statusElement.className = `drive-status ${status}`;
-    }
-}
-
-// ===== GOOGLE DRIVE API =====
-function initGoogleDrive() {
-    if (typeof gapi === 'undefined') {
-        showErrorMessage('Google API library not loaded');
-        return;
-    }
-    
-    gapi.load('client:auth2', {
-        callback: initClient,
-        onerror: () => {
-            showErrorMessage('Failed to load Google API client');
-            updateDriveStatus('API load failed', 'disconnected');
+// ===== GOOGLE IDENTITY SERVICES (NEW AUTH) =====
+function initGoogleAuth() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.readonly',
+        callback: (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+                initGapiClient(tokenResponse.access_token);
+            }
+        },
+        error_callback: (error) => {
+            console.error('Token error:', error);
+            showErrorMessage('Authentication failed');
+            updateDriveStatus('Auth failed', 'disconnected');
         }
     });
 }
 
-function initClient() {
-    gapi.client.init({
-        apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-        scope: SCOPES
-    }).then(() => {
-        console.log('Google API initialized successfully');
-        gapiInitialized = true;
-        updateDriveStatus('Connected to memories', 'connected');
-        loadDriveMedia();
-    }).catch(error => {
-        console.error('Google API init error:', error);
-        let errorMsg = 'API initialization failed';
-        
-        if (error.details) {
-            errorMsg += `: ${error.details}`;
-        } else if (error.error) {
-            errorMsg += `: ${error.error}`;
-        }
-        
-        showErrorMessage(errorMsg);
-        updateDriveStatus('Connection failed', 'disconnected');
+function initGapiClient(accessToken) {
+    gapi.load('client', () => {
+        gapi.client.init({
+            apiKey: API_KEY,
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+        }).then(() => {
+            // Set the access token
+            gapi.client.setToken({access_token: accessToken});
+            
+            console.log('Google API initialized');
+            updateDriveStatus('Connected to memories', 'connected');
+            loadDriveMedia();
+        }).catch(error => {
+            console.error('GAPI init error:', error);
+            showErrorMessage('API initialization failed');
+            updateDriveStatus('Connection failed', 'disconnected');
+        });
     });
 }
 
+// ===== DRIVE API FUNCTIONS =====
 async function loadDriveMedia() {
     updateDriveStatus('Loading memories...', 'disconnected');
     
     try {
         const response = await gapi.client.drive.files.list({
-            q: `'${DRIVE_FOLDER_ID}' in parents and (mimeType contains 'image/' or mimeType contains 'video/') and trashed = false`,
+            q: `'${DRIVE_FOLDER_ID}' in parents and 
+                (mimeType contains 'image/' or mimeType contains 'video/') and 
+                trashed = false`,
             fields: 'files(id, name, mimeType, webContentLink, thumbnailLink)',
             orderBy: 'createdTime desc'
         });
@@ -139,29 +117,21 @@ function renderMedia() {
 
     mediaItems.forEach((media, index) => {
         const rotation = (Math.random() * 10) - 5;
-        
         const mediaItem = document.createElement('div');
         mediaItem.className = 'photo-item';
         mediaItem.style.setProperty('--rotation', `${rotation}deg`);
-        mediaItem.dataset.index = index;
         mediaItem.onclick = () => openLightbox(index);
         
-        let mediaElement = '';
         if (media.type === 'video') {
-            mediaElement = `
+            mediaItem.innerHTML = `
                 <img src="${media.thumbnail}" alt="${media.name}" loading="lazy">
                 <div class="video-indicator">
                     <i class="fas fa-play"></i>
                 </div>
             `;
         } else {
-            mediaElement = `<img src="${media.thumbnail}" alt="${media.name}" loading="lazy">`;
+            mediaItem.innerHTML = `<img src="${media.thumbnail}" alt="${media.name}" loading="lazy">`;
         }
-        
-        mediaItem.innerHTML = `
-            ${mediaElement}
-            <button class="delete-btn" onclick="deleteMedia(event, '${media.id}')" style="display: none">✕</button>
-        `;
         
         photosContainer.appendChild(mediaItem);
     });
@@ -182,7 +152,6 @@ function openLightbox(index) {
         lightboxContent.innerHTML = `
             <video controls autoplay>
                 <source src="https://drive.google.com/uc?export=download&id=${media.id}" type="${media.mimeType}">
-                Your browser does not support the video tag.
             </video>
         `;
     } else {
@@ -201,18 +170,6 @@ function closeLightbox() {
     if (video) video.pause();
 }
 
-function changeMedia(direction) {
-    currentMediaIndex += direction;
-    
-    if (currentMediaIndex < 0) {
-        currentMediaIndex = mediaItems.length - 1;
-    } else if (currentMediaIndex >= mediaItems.length) {
-        currentMediaIndex = 0;
-    }
-    
-    openLightbox(currentMediaIndex);
-}
-
 // ===== ADMIN FUNCTIONS =====
 function toggleAdminMode() {
     if (isAdminMode) {
@@ -222,7 +179,6 @@ function toggleAdminMode() {
             adminBtn.classList.remove('admin-active');
             adminBtn.innerHTML = '🔒';
         }
-        hideDeleteButtons();
     } else {
         const password = prompt('Enter admin password:');
         if (password === ADMIN_PASSWORD) {
@@ -232,37 +188,8 @@ function toggleAdminMode() {
                 adminBtn.classList.add('admin-active');
                 adminBtn.innerHTML = '👑';
             }
-            showDeleteButtons();
         } else if (password !== null) {
             alert('Password errata');
-        }
-    }
-}
-
-function showDeleteButtons() {
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.style.display = 'flex';
-    });
-}
-
-function hideDeleteButtons() {
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.style.display = 'none';
-    });
-}
-
-async function deleteMedia(event, fileId) {
-    event.stopPropagation();
-    
-    if (!isAdminMode) return;
-    
-    if (confirm('Sei sicuro di voler rimuovere questo elemento?')) {
-        try {
-            await gapi.client.drive.files.delete({ fileId });
-            loadDriveMedia();
-        } catch (error) {
-            console.error('Delete error:', error);
-            showErrorMessage('Errore nella cancellazione');
         }
     }
 }
@@ -275,48 +202,50 @@ function updateStats() {
     }
 }
 
+// ===== DRIVE STATUS =====
+function updateDriveStatus(message, status) {
+    const statusElement = document.getElementById('driveStatus');
+    if (statusElement) {
+        statusElement.innerHTML = `<i class="fas fa-hdd"></i> <span>${message}</span>`;
+        statusElement.className = `drive-status ${status}`;
+    }
+}
+
 // ===== UPLOAD HANDLER =====
 function uploadPhoto() {
-    showErrorMessage('Carica direttamente su Google Drive. Aggiorna la pagina dopo il caricamento.');
+    showErrorMessage('Upload directly to Google Drive. Refresh after uploading.');
 }
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOMContentLoaded');
+    // Initialize Google Identity Services
+    initGoogleAuth();
+    
     const adminBtn = document.getElementById('adminBtn');
     if (adminBtn) {
         adminBtn.addEventListener('click', toggleAdminMode);
     }
     
-    // Initialize Google Drive API
-    if (typeof gapi !== 'undefined') {
-        initGoogleDrive();
-    } else {
-        console.error('gapi is not loaded');
-        updateDriveStatus('Google API not available', 'disconnected');
-    }
-    
-    // Event delegation for lightbox close
+    // Event delegation for lightbox
     document.addEventListener('click', (e) => {
         const lightbox = document.getElementById('lightbox');
-        if (lightbox && e.target === lightbox) {
-            closeLightbox();
-        }
+        if (lightbox && e.target === lightbox) closeLightbox();
     });
     
     // Keyboard navigation
     document.addEventListener('keydown', (e) => {
         const lightbox = document.getElementById('lightbox');
         if (lightbox && lightbox.classList.contains('active')) {
-            if (e.key === 'Escape') {
-                closeLightbox();
-            } else if (e.key === 'ArrowLeft') {
-                changeMedia(-1);
-            } else if (e.key === 'ArrowRight') {
-                changeMedia(1);
-            }
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft') openLightbox(Math.max(0, currentMediaIndex - 1));
+            if (e.key === 'ArrowRight') openLightbox(Math.min(mediaItems.length - 1, currentMediaIndex + 1));
         }
     });
+    
+    // Start authentication (non-blocking)
+    setTimeout(() => {
+        if (tokenClient) {
+            tokenClient.requestAccessToken({prompt: ''});
+        }
+    }, 1000);
 });
-
-} // End of MEMORIAL_INITIALIZED

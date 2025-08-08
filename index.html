@@ -13,13 +13,15 @@
     <title>In memoria di Ross</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <script src="https://accounts.google.com/gsi/client"></script>
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="script.js" defer></script>
     <meta http-equiv="Content-Security-Policy" 
       content="default-src 'self'; 
-               script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com; 
+               script-src 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com https://www.gstatic.com; 
                style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; 
-               img-src 'self' data: https://*.googleusercontent.com https://drive.google.com;
+               img-src 'self' data: https://*.googleusercontent.com https://drive.google.com https://ssl.gstatic.com;
+               font-src 'self' https://cdnjs.cloudflare.com;
                connect-src 'self' https://www.googleapis.com https://accounts.google.com;
                frame-src https://accounts.google.com;">
 </head>
