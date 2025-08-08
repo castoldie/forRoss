@@ -181,9 +181,9 @@
         </div>
         
         <div class="upload-section">
-            <h3>Add a photo</h3>
+            <h3>Metti 'na foto</h3>
             <input type="file" id="photoUpload" accept="image/*" multiple>
-            <button onclick="uploadPhoto()">Add to Board</button>
+            <button onclick="uploadPhoto()">Daje</button>
         </div>
     </div>
 
@@ -340,7 +340,7 @@
         function deletePhoto(index) {
             if (!isAdminMode) return;
             
-            if (confirm('Are you sure you want to remove this photo?')) {
+            if (confirm('Ma che davero la vuoi tojere?')) {
                 const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
                 const deletedPhoto = savedPhotos[index];
                 
