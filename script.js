@@ -17,6 +17,7 @@ function initGoogleDrive() {
     gapi.load('client:auth2', initClient);
 }
 
+javascript
 function initClient() {
     gapi.client.init({
         apiKey: API_KEY,
@@ -27,9 +28,14 @@ function initClient() {
         gapiInitialized = true;
         updateDriveStatus('Connected to memories', 'connected');
         loadDriveMedia();
+        
+        // Handle auth status changes
+        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
     }, (error) => {
         console.error('Google API init error:', error);
         updateDriveStatus('Connection failed', 'disconnected');
+        showErrorMessage(`API Error: ${error.details || error.message}`);
     });
 }
 
@@ -197,6 +203,15 @@ function updateStats() {
 // Upload function removed - Use Google Drive interface for uploads
 function uploadPhoto() {
     showErrorMessage('Carica direttamente su Google Drive. Aggiorna la pagina dopo il caricamento.');
+}
+
+function updateSigninStatus(isSignedIn) {
+    if (isSignedIn) {
+        loadDriveMedia();
+    } else {
+        // Handle sign-in
+        gapi.auth2.getAuthInstance().signIn();
+    }
 }
 
 // Other functions (closeLightbox, changeMedia, etc.) remain the same as before
