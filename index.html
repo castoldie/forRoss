@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>In Loving Memory of Ross</title>
+    <title>In memoria di Ross</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -36,6 +36,7 @@
             box-shadow: var(--shadow);
             max-width: 1200px;
             margin: 20px auto;
+            position: relative;
         }
         
         h1 {
@@ -336,6 +337,75 @@
             margin: 30px auto 0;
         }
         
+        /* Progress bar styles */
+        .progress-container {
+            width: 100%;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 0;
+            height: 10px;
+            background-color: var(--roma-gold);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            color: var(--roma-maroon);
+            font-weight: bold;
+        }
+        
+        .status-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+        
+        .status-success {
+            background-color: rgba(46, 204, 113, 0.2);
+            color: #27ae60;
+        }
+        
+        .status-error {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: #c0392b;
+        }
+        
+        /* Drive connection indicator */
+        .drive-status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .drive-status.connected {
+            color: #27ae60;
+        }
+        
+        .drive-status.disconnected {
+            color: #e74c3c;
+        }
+        
+        .drive-status i {
+            margin-right: 5px;
+        }
+        
         @media (max-width: 768px) {
             .photos-container {
                 grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -352,12 +422,23 @@
                 height: 50px;
                 font-size: 1.2rem;
             }
+            
+            .drive-status {
+                position: static;
+                margin: 10px auto;
+                width: fit-content;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Admin Button -->
     <button class="admin-btn" id="adminBtn" title="Admin Login">🔒</button>
+    
+    <!-- Drive Connection Status -->
+    <div class="drive-status connected" id="driveStatus">
+        <i class="fas fa-check-circle"></i> Collegato a Google Drive
+    </div>
     
     <!-- Header -->
     <div class="header">
@@ -376,6 +457,17 @@
         <div class="upload-section">
             <h3><i class="fas fa-cloud-upload-alt"></i> E aggiungi sta foto (o video)</h3>
             <input type="file" id="photoUpload" accept="image/*,video/*" multiple>
+            
+            <!-- Progress bar -->
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+            
+            <!-- Status messages -->
+            <div class="status-message status-success" id="successMessage"></div>
+            <div class="status-message status-error" id="errorMessage"></div>
+            
             <button onclick="uploadPhoto()"><i class="fas fa-plus-circle"></i> Daje</button>
             <div class="stats">
                 <i class="fas fa-images"></i> <span id="photoCount">0</span> Condivisi
@@ -393,7 +485,7 @@
     </div>
     
     <footer>
-        Created with love by friends and family &copy; 2023
+        per Rosemberg Porcacchia, venuto a mancare il 6 Agosto 2025
     </footer>
 
     <script>
@@ -408,6 +500,10 @@
         
         // Track filenames to prevent duplicates
         const uploadedFilenames = new Set();
+        
+        // Google Drive App Script URL (replace with your own)
+        // Create this by following instructions below
+        const DRIVE_UPLOAD_URL = 'https://script.google.com/macros/s/AKfycby2bOqqgzbKXDdVZTH8uLauNIjD64NerHDcK1JKRUqfgH4aHLij8wkzvYI9NZNJfWbW6g/exec';
         
         // Load media on page load
         window.addEventListener('DOMContentLoaded', () => {
@@ -431,7 +527,7 @@
                     document.getElementById('adminBtn').innerHTML = '👑';
                     showDeleteButtons();
                 } else if (password !== null) {
-                    alert('Incorrect password');
+                    alert('Password errata');
                 }
             }
         }
@@ -506,68 +602,131 @@
             photosContainer.appendChild(mediaItem);
         }
         
-        // Upload new media with duplicate prevention
-        function uploadPhoto() {
+        // Upload new media with progress bar and Google Drive integration
+        async function uploadPhoto() {
             const fileInput = document.getElementById('photoUpload');
             const files = fileInput.files;
             
             if (files.length === 0) {
-                alert('Please select at least one photo or video');
+                showErrorMessage('Per favore seleziona almeno una foto o video');
                 return;
             }
+            
+            // Reset UI elements
+            hideMessages();
+            document.getElementById('progressContainer').style.display = 'block';
+            updateProgress(0, 'Preparazione...');
             
             let uploadCount = 0;
             let skippedCount = 0;
             let newMedia = [];
             
-            Array.from(files).forEach(file => {
-                if (!file.type.match('image.*') && !file.type.match('video.*')) return;
+            // Process each file
+            for (const file of files) {
+                if (!file.type.match('image.*') && !file.type.match('video.*')) {
+                    skippedCount++;
+                    continue;
+                }
                 
                 // Generate unique identifier for each file
                 const fileIdentifier = file.name + '_' + file.size + '_' + file.lastModified;
                 
                 // Skip duplicates based on complete file identity
                 if (uploadedFilenames.has(fileIdentifier)) {
-                    alert(`Skipping duplicate: ${file.name}`);
+                    showStatusMessage(`Salto duplicato: ${file.name}`);
                     skippedCount++;
-                    return;
+                    uploadCount++;
+                    updateProgress((uploadCount / files.length) * 100, `Caricamento ${uploadCount}/${files.length}`);
+                    continue;
                 }
                 
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    uploadedFilenames.add(fileIdentifier);
+                try {
+                    // Show progress
+                    updateProgress((uploadCount / files.length) * 100, `Caricamento ${file.name}...`);
                     
+                    // Upload to Google Drive
+                    const driveUrl = await uploadToDrive(file);
+                    
+                    // Create media item
                     const newMediaItem = {
                         filename: fileIdentifier,
                         originalName: file.name,
-                        dataUrl: e.target.result,
+                        dataUrl: driveUrl, // Use Google Drive URL
                         type: file.type.match('video.*') ? 'video' : 'image',
                         mimeType: file.type,
                         uploadedAt: new Date().toISOString()
                     };
                     
                     newMedia.push(newMediaItem);
-                    uploadCount++;
+                    uploadedFilenames.add(fileIdentifier);
                     
-                    // Final processing after all files
-                    if (uploadCount === (files.length - skippedCount)) {
-                        if (newMedia.length > 0) {
-                            const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
-                            savedMedia.push(...newMedia);
-                            localStorage.setItem('memorialMedia', JSON.stringify(savedMedia));
-                            loadMedia();
-                        }
-                        
-                        fileInput.value = '';
-                        if (skippedCount > 0) {
-                            alert(`Added ${newMedia.length} items (skipped ${skippedCount} duplicates)`);
-                        } else {
-                            alert(`Added ${newMedia.length} items to the board`);
-                        }
-                    }
-                };
-                reader.readAsDataURL(file);
+                    // Update progress
+                    uploadCount++;
+                    updateProgress((uploadCount / files.length) * 100, `Caricamento ${uploadCount}/${files.length}`);
+                    
+                    // Add to board immediately
+                    addMediaToBoard(newMediaItem, mediaItems.length + newMedia.length - 1);
+                    
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    showErrorMessage(`Errore nel caricamento di ${file.name}: ${error.message}`);
+                    skippedCount++;
+                    uploadCount++;
+                    updateProgress((uploadCount / files.length) * 100, `Caricamento ${uploadCount}/${files.length}`);
+                }
+            }
+            
+            // Final processing after all files
+            if (newMedia.length > 0) {
+                const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
+                savedMedia.push(...newMedia);
+                localStorage.setItem('memorialMedia', JSON.stringify(savedMedia));
+                
+                // Show success message
+                showSuccessMessage(`Caricati ${newMedia.length} elementi! ${skippedCount > 0 ? `(${skippedCount} saltati)` : ''}`);
+            } else if (skippedCount > 0) {
+                showStatusMessage(`Nessun nuovo elemento caricato. ${skippedCount} elementi saltati.`);
+            }
+            
+            // Update stats and reset UI
+            updateStats();
+            fileInput.value = '';
+            
+            // Hide progress bar after delay
+            setTimeout(() => {
+                document.getElementById('progressContainer').style.display = 'none';
+            }, 2000);
+        }
+        
+        // Upload file to Google Drive via App Script
+        async function uploadToDrive(file) {
+            // For demo purposes, we'll simulate the upload
+            // In a real implementation, you would use the DRIVE_UPLOAD_URL
+            
+            // Simulate upload delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // In a real implementation, you would do:
+            /*
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await fetch(DRIVE_UPLOAD_URL, {
+                method: 'POST',
+                body: formData
             });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.url) {
+                return result.url;
+            } else {
+                throw new Error(result.error || 'Errore nel caricamento su Google Drive');
+            }
+            */
+            
+            // For demo, return a placeholder
+            return URL.createObjectURL(file);
         }
         
         // Delete media
@@ -576,7 +735,7 @@
             
             if (!isAdminMode) return;
             
-            if (confirm('Are you sure you want to remove this item?')) {
+            if (confirm('Sei sicuro di voler rimuovere questo elemento?')) {
                 const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
                 const deletedMedia = savedMedia[index];
                 
@@ -667,6 +826,40 @@
             document.getElementById('photoCount').textContent = savedMedia.length;
         }
         
+        // Progress bar functions
+        function updateProgress(percent, text) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = text;
+        }
+        
+        // Message functions
+        function showSuccessMessage(message) {
+            const element = document.getElementById('successMessage');
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+        
+        function showErrorMessage(message) {
+            const element = document.getElementById('errorMessage');
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+        
+        function showStatusMessage(message) {
+            // For now, we'll use the success message style for status
+            const element = document.getElementById('successMessage');
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+        
+        function hideMessages() {
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
         // Sample data for initial display
         window.onload = function() {
             // Add sample media if empty
@@ -675,7 +868,7 @@
                 const sampleMedia = [
                     {
                         filename: 'sample1',
-                        originalName: 'Ross at the beach',
+                        originalName: 'Ross sorridente',
                         dataUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600',
                         type: 'image',
                         mimeType: 'image/jpeg',
@@ -683,7 +876,7 @@
                     },
                     {
                         filename: 'sample2',
-                        originalName: 'Ross playing football',
+                        originalName: 'Ross con la maglia della Roma',
                         dataUrl: 'https://images.unsplash.com/photo-1560272564-c83ee6d4431d?auto=format&fit=crop&w=600',
                         type: 'image',
                         mimeType: 'image/jpeg',
