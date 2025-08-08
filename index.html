@@ -195,28 +195,40 @@
         // upload new photo
         function uploadPhoto() {
             const fileInput = document.getElementById('photoUpload');
-            const file = fileInput.files[0];
+            const files = fileInput.files;
             
-            if (file) {
+            if (files.length === 0) {
+                alert('Please select at least one photo');
+                return;
+            }
+            
+            let uploadCount = 0;
+            
+            Array.from(files).forEach(file => {
+                // Only process image files
+                if (!file.type.match('image.*')) return;
+                
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const newPhotoUrl = e.target.result;
                     
-                    // save to localStorage
+                    // Save to localStorage
                     const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
                     savedPhotos.push(newPhotoUrl);
                     localStorage.setItem('memorialPhotos', JSON.stringify(savedPhotos));
                     
-                    // add to board
+                    // Add to board
                     addPhotoToBoard(newPhotoUrl, savedPhotos.length - 1);
                     
-                    // reset input
-                    fileInput.value = '';
+                    // Update counter
+                    uploadCount++;
+                    if (uploadCount === files.length) {
+                        fileInput.value = '';
+                        alert(`Successfully added ${uploadCount} photos to the board`);
+                    }
                 };
                 reader.readAsDataURL(file);
-            } else {
-                alert('Please select a photo to upload');
-            }
+            });
         }
         
         // delete a photo
