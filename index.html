@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memorial Bulletin Board</title>
-        <style>
+    <style>
         :root {
             --roma-maroon: #9B1C2C;
             --roma-gold: #D4A017;
@@ -15,6 +15,10 @@
         body {
             background-color: white;
             background-image: none;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
         }
         
         .bulletin-board {
@@ -22,32 +26,77 @@
             border: 15px solid var(--roma-maroon);
             border-radius: 8px;
             box-shadow: var(--shadow);
+            min-height: 80vh;
+            padding: 30px;
         }
         
         .board-title {
             color: var(--roma-maroon);
             border-bottom: 3px solid var(--roma-gold);
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+        }
+        
+        /* RESTORED GRID LAYOUT */
+        .photos-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 30px;
+            padding: 20px;
         }
         
         .photo-item {
+            position: relative;
             background: white;
             border: 1px solid #e0e0e0;
             box-shadow: var(--shadow);
+            padding: 15px;
+            border-radius: 3px;
+            transform: rotate(var(--rotation));
+            transition: transform 0.3s ease;
         }
         
         .photo-item::before {
+            content: "";
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            width: 30px;
+            height: 30px;
             background: var(--roma-maroon);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
         
         .photo-item:hover {
             box-shadow: 0 0 15px rgba(155, 28, 44, 0.3);
+            transform: rotate(0deg) scale(1.05);
+            z-index: 10;
+        }
+        
+        .photo-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+            border: 1px solid #ddd;
         }
         
         button {
             background: var(--roma-maroon);
             color: white;
             transition: all 0.3s;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
         }
         
         button:hover {
@@ -60,6 +109,16 @@
             background: var(--roma-maroon);
             color: white;
             font-weight: bold;
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            display: none;
+            z-index: 20;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            border-radius: 50%;
         }
         
         .delete-btn:hover {
@@ -70,7 +129,20 @@
         .admin-btn {
             background: var(--roma-maroon);
             color: white;
+            position: absolute;
+            top: 40px;
+            right: 40px;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            z-index: 100;
             box-shadow: 0 4px 8px rgba(155, 28, 44, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: none;
         }
         
         .admin-btn.admin-active {
@@ -81,14 +153,20 @@
         .upload-section {
             background: rgba(212, 160, 23, 0.1);
             border: 2px dashed var(--roma-gold);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 30px auto;
+            max-width: 500px;
+            text-align: center;
         }
         
         input[type="file"] {
             border: 1px solid var(--roma-gold);
             padding: 8px;
             border-radius: 4px;
+            width: 100%;
         }
-        </style>
+    </style>
 </head>
 <body>
     <!-- Admin Button -->
@@ -110,31 +188,30 @@
     </div>
 
     <script>
-        // ADMIN PASSWORD - CHANGE THIS TO YOUR SECURE PASSWORD
+        // ADMIN PASSWORD
         const ADMIN_PASSWORD = "porrazzo123";
         let isAdminMode = false;
         
-        // Initialize with sample photos
+        // Initialize with empty photo array
         const initialPhotos = [];
+        
+        // Track filenames to prevent duplicates
+        const uploadedFilenames = new Set();
         
         // Load photos on page load
         window.addEventListener('DOMContentLoaded', () => {
             loadPhotos();
-            
-            // Setup admin button
             document.getElementById('adminBtn').addEventListener('click', toggleAdminMode);
         });
         
         // Toggle admin mode
         function toggleAdminMode() {
             if (isAdminMode) {
-                // Logout
                 isAdminMode = false;
                 document.getElementById('adminBtn').classList.remove('admin-active');
                 document.getElementById('adminBtn').innerHTML = '🔒';
                 hideDeleteButtons();
             } else {
-                // Prompt for password
                 const password = prompt('Enter admin password:');
                 if (password === ADMIN_PASSWORD) {
                     isAdminMode = true;
@@ -161,23 +238,28 @@
             });
         }
         
-        // Load photos from localStorage or initialize
+        // Load photos from localStorage
         function loadPhotos() {
             const photosContainer = document.getElementById('photosContainer');
             photosContainer.innerHTML = '';
             
-            // Get photos from localStorage or use initial ones
             const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
             
-            savedPhotos.forEach((photoUrl, index) => {
-                addPhotoToBoard(photoUrl, index);
+            // Clear filename tracker and repopulate
+            uploadedFilenames.clear();
+            savedPhotos.forEach(photo => {
+                if (photo.filename) uploadedFilenames.add(photo.filename);
+            });
+            
+            savedPhotos.forEach((photo, index) => {
+                addPhotoToBoard(photo.dataUrl, index);
             });
         }
         
         // Add a photo to the board
         function addPhotoToBoard(photoUrl, index) {
             const photosContainer = document.getElementById('photosContainer');
-            const rotation = (Math.random() * 10) - 5; // -5 to 5 degrees
+            const rotation = (Math.random() * 10) - 5;
             
             const photoItem = document.createElement('div');
             photoItem.className = 'photo-item';
@@ -192,7 +274,7 @@
             photosContainer.appendChild(photoItem);
         }
         
-        // upload new photo
+        // Upload new photos with duplicate prevention
         function uploadPhoto() {
             const fileInput = document.getElementById('photoUpload');
             const files = fileInput.files;
@@ -203,44 +285,61 @@
             }
             
             let uploadCount = 0;
+            let newPhotos = [];
             
             Array.from(files).forEach(file => {
-                // Only process image files
                 if (!file.type.match('image.*')) return;
+                
+                // Skip duplicate filenames
+                if (uploadedFilenames.has(file.name)) {
+                    alert(`Skipping duplicate: ${file.name}`);
+                    return;
+                }
                 
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const newPhotoUrl = e.target.result;
+                    uploadedFilenames.add(file.name);
                     
-                    // Save to localStorage
-                    const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
-                    savedPhotos.push(newPhotoUrl);
-                    localStorage.setItem('memorialPhotos', JSON.stringify(savedPhotos));
+                    const newPhoto = {
+                        filename: file.name,
+                        dataUrl: e.target.result
+                    };
                     
-                    // Add to board
-                    addPhotoToBoard(newPhotoUrl, savedPhotos.length - 1);
-                    
-                    // Update counter
+                    newPhotos.push(newPhoto);
                     uploadCount++;
-                    if (uploadCount === files.length) {
+                    
+                    // Final processing after all files
+                    if (uploadCount === files.length - skippedCount) {
+                        if (newPhotos.length > 0) {
+                            const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
+                            savedPhotos.push(...newPhotos);
+                            localStorage.setItem('memorialPhotos', JSON.stringify(savedPhotos));
+                            loadPhotos();
+                        }
+                        
                         fileInput.value = '';
-                        alert(`Successfully added ${uploadCount} photos to the board`);
+                        alert(`Added ${newPhotos.length} photos to the board`);
                     }
                 };
                 reader.readAsDataURL(file);
             });
         }
         
-        // delete a photo
+        // Delete a photo
         function deletePhoto(index) {
             if (!isAdminMode) return;
             
             if (confirm('Are you sure you want to remove this photo?')) {
                 const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
+                const deletedPhoto = savedPhotos[index];
+                
+                // Remove from filename tracker
+                if (deletedPhoto.filename) {
+                    uploadedFilenames.delete(deletedPhoto.filename);
+                }
+                
                 savedPhotos.splice(index, 1);
                 localStorage.setItem('memorialPhotos', JSON.stringify(savedPhotos));
-                
-                // reload photos
                 loadPhotos();
             }
         }
