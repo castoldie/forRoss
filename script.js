@@ -16,7 +16,6 @@ function initGoogleDrive() {
     gapi.load('client:auth2', initClient);
 }
 
-javascript
 function initClient() {
     gapi.client.init({
         apiKey: API_KEY,
@@ -31,7 +30,7 @@ function initClient() {
         // Handle auth status changes
         gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
         updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-        
+
     }, (error) => {
         console.error('Google API init error:', error);
         updateDriveStatus('Connection failed', 'disconnected');
