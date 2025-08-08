@@ -1,4 +1,4 @@
-// Prevent duplicate execution
+// ===== GLOBAL GUARD =====
 if (!window.MEMORIAL_INITIALIZED) {
 window.MEMORIAL_INITIALIZED = true;
 
@@ -33,33 +33,36 @@ function showErrorMessage(message) {
     }
 }
 
-// ===== GOOGLE IDENTITY SERVICES (NEW AUTH) =====
+// ===== GOOGLE IDENTITY SERVICES =====
 function initGoogleAuth() {
-    // Initialize token client
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.readonly',
-        callback: (tokenResponse) => {
-            if (tokenResponse && tokenResponse.access_token) {
-                loadDriveMedia(tokenResponse.access_token);
-            }
-        },
-        error_callback: (error) => {
-            console.error('Token error:', error);
-            showErrorMessage('Authentication failed');
-            updateDriveStatus('Auth failed', 'disconnected');
-        }
-    });
+    // Wait for google object to be available
+    if (typeof google === 'undefined') {
+        setTimeout(initGoogleAuth, 100);
+        return;
+    }
     
-    // Request token silently
-    setTimeout(() => {
-        try {
-            tokenClient.requestAccessToken({prompt: ''});
-        } catch (e) {
-            console.error('Token request error:', e);
-            updateDriveStatus('Connection failed', 'disconnected');
-        }
-    }, 1000);
+    try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/drive.readonly',
+            callback: (tokenResponse) => {
+                if (tokenResponse && tokenResponse.access_token) {
+                    loadDriveMedia(tokenResponse.access_token);
+                }
+            },
+            error_callback: (error) => {
+                console.error('Token error:', error);
+                showErrorMessage('Authentication failed');
+                updateDriveStatus('Auth failed', 'disconnected');
+            }
+        });
+        
+        // Request token silently
+        tokenClient.requestAccessToken({prompt: ''});
+    } catch (e) {
+        console.error('Google Auth init error:', e);
+        updateDriveStatus('Connection failed', 'disconnected');
+    }
 }
 
 // ===== DRIVE API FUNCTIONS =====
@@ -231,26 +234,23 @@ function uploadPhoto() {
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Google Identity Services
-    if (typeof google !== 'undefined') {
-        initGoogleAuth();
-    } else {
-        console.error('Google Identity Services not loaded');
-        updateDriveStatus('Auth service unavailable', 'disconnected');
-    }
+    console.log('DOMContentLoaded');
     
+    // Initialize Google authentication
+    setTimeout(initGoogleAuth, 100);
+    
+    // Admin button setup
     const adminBtn = document.getElementById('adminBtn');
     if (adminBtn) {
         adminBtn.addEventListener('click', toggleAdminMode);
     }
     
-    // Event delegation for lightbox
+    // Lightbox event handlers
     document.addEventListener('click', (e) => {
         const lightbox = document.getElementById('lightbox');
         if (lightbox && e.target === lightbox) closeLightbox();
     });
     
-    // Keyboard navigation
     document.addEventListener('keydown', (e) => {
         const lightbox = document.getElementById('lightbox');
         if (lightbox && lightbox.classList.contains('active')) {
