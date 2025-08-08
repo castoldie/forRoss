@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memorial Bulletin Board</title>
+    <title>In Loving Memory of Ross</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --roma-maroon: #9B1C2C;
@@ -12,13 +13,44 @@
             --shadow: 2px 2px 8px rgba(0,0,0,0.1);
         }
         
-        body {
-            background-color: white;
-            background-image: none;
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
+            padding: 20px;
             position: relative;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+        
+        h1 {
+            color: var(--roma-maroon);
+            font-size: 3rem;
+            margin-bottom: 10px;
+            font-family: 'Georgia', serif;
+        }
+        
+        .subtitle {
+            color: #555;
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
         }
         
         .bulletin-board {
@@ -26,22 +58,13 @@
             border: 15px solid var(--roma-maroon);
             border-radius: 8px;
             box-shadow: var(--shadow);
-            min-height: 80vh;
+            max-width: 1400px;
+            margin: 0 auto;
             padding: 30px;
+            position: relative;
+            min-height: 80vh;
         }
         
-        .board-title {
-            color: var(--roma-maroon);
-            border-bottom: 3px solid var(--roma-gold);
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-            text-align: center;
-            font-family: 'Courier New', monospace;
-            font-size: 2.5rem;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-        }
-        
-        /* RESTORED GRID LAYOUT */
         .photos-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -57,7 +80,16 @@
             padding: 15px;
             border-radius: 3px;
             transform: rotate(var(--rotation));
-            transition: transform 0.3s ease;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: 280px;
+            overflow: hidden;
+        }
+        
+        .photo-item:hover {
+            transform: rotate(0deg) scale(1.05);
+            box-shadow: 0 10px 20px rgba(155, 28, 44, 0.3);
+            z-index: 10;
         }
         
         .photo-item::before {
@@ -73,13 +105,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
         
-        .photo-item:hover {
-            box-shadow: 0 0 15px rgba(155, 28, 44, 0.3);
-            transform: rotate(0deg) scale(1.05);
-            z-index: 10;
-        }
-        
-        .photo-item img {
+        .photo-item img, .photo-item video {
             width: 100%;
             height: 200px;
             object-fit: cover;
@@ -87,22 +113,50 @@
             border: 1px solid #ddd;
         }
         
+        .video-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            opacity: 0.8;
+        }
+        
+        .photo-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #555;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
         button {
             background: var(--roma-maroon);
             color: white;
             transition: all 0.3s;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 25px;
             margin-top: 10px;
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
         button:hover {
             background: var(--roma-gold);
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
         }
         
         .delete-btn {
@@ -112,13 +166,16 @@
             position: absolute;
             top: -10px;
             right: -10px;
-            width: 25px;
-            height: 25px;
+            width: 30px;
+            height: 30px;
             cursor: pointer;
-            display: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             z-index: 20;
             box-shadow: 0 2px 5px rgba(0,0,0,0.5);
             border-radius: 50%;
+            border: none;
         }
         
         .delete-btn:hover {
@@ -129,13 +186,13 @@
         .admin-btn {
             background: var(--roma-maroon);
             color: white;
-            position: absolute;
-            top: 40px;
-            right: 40px;
-            width: 50px;
-            height: 50px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
             cursor: pointer;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             z-index: 100;
             box-shadow: 0 4px 8px rgba(155, 28, 44, 0.4);
             display: flex;
@@ -148,6 +205,7 @@
         .admin-btn.admin-active {
             background: var(--roma-gold);
             color: var(--roma-maroon);
+            box-shadow: 0 4px 15px rgba(212, 160, 23, 0.6);
         }
         
         .upload-section {
@@ -156,15 +214,144 @@
             padding: 20px;
             border-radius: 10px;
             margin: 30px auto;
-            max-width: 500px;
+            max-width: 600px;
             text-align: center;
         }
         
         input[type="file"] {
             border: 1px solid var(--roma-gold);
-            padding: 8px;
+            padding: 12px;
             border-radius: 4px;
             width: 100%;
+            margin: 15px 0;
+            background: white;
+        }
+        
+        .stats {
+            background: rgba(155, 28, 44, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+            color: var(--roma-maroon);
+        }
+        
+        /* Lightbox Styles */
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .lightbox.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .lightbox-content {
+            max-width: 90%;
+            max-height: 90%;
+        }
+        
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 80vh;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .lightbox-content video {
+            max-width: 90vw;
+            max-height: 80vh;
+            outline: none;
+        }
+        
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .lightbox-prev {
+            left: 20px;
+        }
+        
+        .lightbox-next {
+            right: 20px;
+        }
+        
+        .media-counter {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: 0.9rem;
+            max-width: 1200px;
+            margin: 30px auto 0;
+        }
+        
+        @media (max-width: 768px) {
+            .photos-container {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 20px;
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .admin-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
         }
     </style>
 </head>
@@ -172,36 +359,62 @@
     <!-- Admin Button -->
     <button class="admin-btn" id="adminBtn" title="Admin Login">🔒</button>
     
+    <!-- Header -->
+    <div class="header">
+        <h1>In Loving Memory of Ross</h1>
+        <div class="subtitle">
+            Forever in our hearts. This memorial board is a place to share photos and videos that celebrate Ross's life.
+        </div>
+    </div>
+    
     <!-- Bulletin Board -->
     <div class="bulletin-board">
-        <h1 class="board-title">in memoria di Ross, sarai sempre con noi bomberone</h1>
-        
         <div class="photos-container" id="photosContainer">
-            <!-- Photos will be added here dynamically -->
+            <!-- Photos and videos will be added here dynamically -->
         </div>
         
         <div class="upload-section">
-            <h3>Metti 'na foto</h3>
-            <input type="file" id="photoUpload" accept="image/*" multiple>
-            <button onclick="uploadPhoto()">Daje</button>
+            <h3><i class="fas fa-cloud-upload-alt"></i> Add Photos and Videos</h3>
+            <p>Select multiple files to upload at once</p>
+            <input type="file" id="photoUpload" accept="image/*,video/*" multiple>
+            <button onclick="uploadPhoto()"><i class="fas fa-plus-circle"></i> Add to Board</button>
+            <div class="stats">
+                <i class="fas fa-images"></i> <span id="photoCount">0</span> Memories Shared
+            </div>
         </div>
     </div>
+    
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <div class="lightbox-close" onclick="closeLightbox()">&times;</div>
+        <div class="lightbox-prev lightbox-nav" onclick="changeMedia(-1)">&#10094;</div>
+        <div class="lightbox-content" id="lightboxContent"></div>
+        <div class="lightbox-next lightbox-nav" onclick="changeMedia(1)">&#10095;</div>
+        <div class="media-counter" id="mediaCounter"></div>
+    </div>
+    
+    <footer>
+        Created with love by friends and family &copy; 2023
+    </footer>
 
     <script>
         // ADMIN PASSWORD
         const ADMIN_PASSWORD = "porrazzo123";
         let isAdminMode = false;
+        let currentMediaIndex = 0;
+        let mediaItems = [];
         
-        // Initialize with empty photo array
-        const initialPhotos = [];
+        // Initialize with empty media array
+        const initialMedia = [];
         
         // Track filenames to prevent duplicates
         const uploadedFilenames = new Set();
         
-        // Load photos on page load
+        // Load media on page load
         window.addEventListener('DOMContentLoaded', () => {
-            loadPhotos();
+            loadMedia();
             document.getElementById('adminBtn').addEventListener('click', toggleAdminMode);
+            updateStats();
         });
         
         // Toggle admin mode
@@ -238,58 +451,78 @@
             });
         }
         
-        // Load photos from localStorage
-        function loadPhotos() {
+        // Load media from localStorage
+        function loadMedia() {
             const photosContainer = document.getElementById('photosContainer');
             photosContainer.innerHTML = '';
             
-            const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
+            const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
+            mediaItems = savedMedia;
             
             // Clear filename tracker and repopulate
             uploadedFilenames.clear();
-            savedPhotos.forEach(photo => {
-                if (photo.filename) uploadedFilenames.add(photo.filename);
+            savedMedia.forEach(media => {
+                if (media.filename) uploadedFilenames.add(media.filename);
             });
             
-            savedPhotos.forEach((photo, index) => {
-                addPhotoToBoard(photo.dataUrl, index);
+            savedMedia.forEach((media, index) => {
+                addMediaToBoard(media, index);
             });
+            
+            updateStats();
         }
         
-        // Add a photo to the board
-        function addPhotoToBoard(photoUrl, index) {
+        // Add media to the board
+        function addMediaToBoard(media, index) {
             const photosContainer = document.getElementById('photosContainer');
             const rotation = (Math.random() * 10) - 5;
             
-            const photoItem = document.createElement('div');
-            photoItem.className = 'photo-item';
-            photoItem.style.setProperty('--rotation', `${rotation}deg`);
-            photoItem.dataset.index = index;
+            const mediaItem = document.createElement('div');
+            mediaItem.className = 'photo-item';
+            mediaItem.style.setProperty('--rotation', `${rotation}deg`);
+            mediaItem.dataset.index = index;
+            mediaItem.onclick = () => openLightbox(index);
             
-            photoItem.innerHTML = `
-                <img src="${photoUrl}" alt="Memory photo">
-                <button class="delete-btn" onclick="deletePhoto(${index})" style="display: ${isAdminMode ? 'block' : 'none'}">✕</button>
+            let mediaElement = '';
+            if (media.type === 'video') {
+                mediaElement = `
+                    <video>
+                        <source src="${media.dataUrl}" type="${media.mimeType}">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-indicator">
+                        <i class="fas fa-play"></i>
+                    </div>
+                `;
+            } else {
+                mediaElement = `<img src="${media.dataUrl}" alt="Memory photo">`;
+            }
+            
+            mediaItem.innerHTML = `
+                ${mediaElement}
+                <div class="photo-info">${media.originalName}</div>
+                <button class="delete-btn" onclick="deleteMedia(event, ${index})" style="display: ${isAdminMode ? 'flex' : 'none'}">✕</button>
             `;
             
-            photosContainer.appendChild(photoItem);
+            photosContainer.appendChild(mediaItem);
         }
         
-        // Upload new photos with duplicate prevention
+        // Upload new media with duplicate prevention
         function uploadPhoto() {
             const fileInput = document.getElementById('photoUpload');
             const files = fileInput.files;
             
             if (files.length === 0) {
-                alert('Please select at least one photo');
+                alert('Please select at least one photo or video');
                 return;
             }
             
             let uploadCount = 0;
             let skippedCount = 0;
-            let newPhotos = [];
+            let newMedia = [];
             
             Array.from(files).forEach(file => {
-                if (!file.type.match('image.*')) return;
+                if (!file.type.match('image.*') && !file.type.match('video.*')) return;
                 
                 // Generate unique identifier for each file
                 const fileIdentifier = file.name + '_' + file.size + '_' + file.lastModified;
@@ -305,30 +538,32 @@
                 reader.onload = function(e) {
                     uploadedFilenames.add(fileIdentifier);
                     
-                    const newPhoto = {
-                        filename: fileIdentifier,  // Store the unique identifier
-                        originalName: file.name,  // Store original filename for reference
+                    const newMediaItem = {
+                        filename: fileIdentifier,
+                        originalName: file.name,
                         dataUrl: e.target.result,
+                        type: file.type.match('video.*') ? 'video' : 'image',
+                        mimeType: file.type,
                         uploadedAt: new Date().toISOString()
                     };
                     
-                    newPhotos.push(newPhoto);
+                    newMedia.push(newMediaItem);
                     uploadCount++;
                     
                     // Final processing after all files
                     if (uploadCount === (files.length - skippedCount)) {
-                        if (newPhotos.length > 0) {
-                            const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
-                            savedPhotos.push(...newPhotos);
-                            localStorage.setItem('memorialPhotos', JSON.stringify(savedPhotos));
-                            loadPhotos();
+                        if (newMedia.length > 0) {
+                            const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
+                            savedMedia.push(...newMedia);
+                            localStorage.setItem('memorialMedia', JSON.stringify(savedMedia));
+                            loadMedia();
                         }
                         
                         fileInput.value = '';
                         if (skippedCount > 0) {
-                            alert(`Added ${newPhotos.length} photos (skipped ${skippedCount} duplicates)`);
+                            alert(`Added ${newMedia.length} items (skipped ${skippedCount} duplicates)`);
                         } else {
-                            alert(`Added ${newPhotos.length} photos to the board`);
+                            alert(`Added ${newMedia.length} items to the board`);
                         }
                     }
                 };
@@ -336,24 +571,131 @@
             });
         }
         
-        // Delete a photo
-        function deletePhoto(index) {
+        // Delete media
+        function deleteMedia(event, index) {
+            event.stopPropagation(); // Prevent lightbox from opening
+            
             if (!isAdminMode) return;
             
-            if (confirm('Ma che davero la vuoi tojere?')) {
-                const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
-                const deletedPhoto = savedPhotos[index];
+            if (confirm('Are you sure you want to remove this item?')) {
+                const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
+                const deletedMedia = savedMedia[index];
                 
                 // Remove from filename tracker
-                if (deletedPhoto.filename) {
-                    uploadedFilenames.delete(deletedPhoto.filename);
+                if (deletedMedia.filename) {
+                    uploadedFilenames.delete(deletedMedia.filename);
                 }
                 
-                savedPhotos.splice(index, 1);
-                localStorage.setItem('memorialPhotos', JSON.stringify(savedPhotos));
-                loadPhotos();
+                savedMedia.splice(index, 1);
+                localStorage.setItem('memorialMedia', JSON.stringify(savedMedia));
+                loadMedia();
             }
         }
+        
+        // Lightbox functions
+        function openLightbox(index) {
+            currentMediaIndex = index;
+            const lightbox = document.getElementById('lightbox');
+            const lightboxContent = document.getElementById('lightboxContent');
+            const mediaCounter = document.getElementById('mediaCounter');
+            
+            const media = mediaItems[index];
+            
+            if (media.type === 'video') {
+                lightboxContent.innerHTML = `
+                    <video controls autoplay>
+                        <source src="${media.dataUrl}" type="${media.mimeType}">
+                        Your browser does not support the video tag.
+                    </video>
+                `;
+            } else {
+                lightboxContent.innerHTML = `<img src="${media.dataUrl}" alt="Memory photo">`;
+            }
+            
+            mediaCounter.textContent = `${index + 1} / ${mediaItems.length}`;
+            lightbox.classList.add('active');
+        }
+        
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('active');
+            
+            // Pause any playing video
+            const video = document.querySelector('.lightbox-content video');
+            if (video) {
+                video.pause();
+            }
+        }
+        
+        function changeMedia(direction) {
+            currentMediaIndex += direction;
+            
+            // Wrap around if at beginning or end
+            if (currentMediaIndex < 0) {
+                currentMediaIndex = mediaItems.length - 1;
+            } else if (currentMediaIndex >= mediaItems.length) {
+                currentMediaIndex = 0;
+            }
+            
+            openLightbox(currentMediaIndex);
+        }
+        
+        // Close lightbox when clicking outside content
+        document.addEventListener('click', (e) => {
+            const lightbox = document.getElementById('lightbox');
+            if (e.target === lightbox) {
+                closeLightbox();
+            }
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            const lightbox = document.getElementById('lightbox');
+            if (lightbox.classList.contains('active')) {
+                if (e.key === 'Escape') {
+                    closeLightbox();
+                } else if (e.key === 'ArrowLeft') {
+                    changeMedia(-1);
+                } else if (e.key === 'ArrowRight') {
+                    changeMedia(1);
+                }
+            }
+        });
+        
+        // Update stats
+        function updateStats() {
+            const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
+            document.getElementById('photoCount').textContent = savedMedia.length;
+        }
+        
+        // Sample data for initial display
+        window.onload = function() {
+            // Add sample media if empty
+            const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
+            if (savedMedia.length === 0) {
+                const sampleMedia = [
+                    {
+                        filename: 'sample1',
+                        originalName: 'Ross at the beach',
+                        dataUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600',
+                        type: 'image',
+                        mimeType: 'image/jpeg',
+                        uploadedAt: new Date().toISOString()
+                    },
+                    {
+                        filename: 'sample2',
+                        originalName: 'Ross playing football',
+                        dataUrl: 'https://images.unsplash.com/photo-1560272564-c83ee6d4431d?auto=format&fit=crop&w=600',
+                        type: 'image',
+                        mimeType: 'image/jpeg',
+                        uploadedAt: new Date().toISOString()
+                    }
+                ];
+                
+                localStorage.setItem('memorialMedia', JSON.stringify(sampleMedia));
+                loadMedia();
+            }
+        };
     </script>
 </body>
 </html>
