@@ -1,3 +1,7 @@
+// Avoid duplicate execution
+if (typeof window.MEMORIAL_INITIALIZED === 'undefined') {
+window.MEMORIAL_INITIALIZED = true;
+
 // ===== CONFIGURATION =====
 const DRIVE_FOLDER_ID = '18C7Dq4piMVvx8vRmbgYZScpaJsX87gVT';
 const API_KEY = 'AIzaSyBTlcx8EZ2Ez3XUJD6CU-TooQZoaiqffEc';
@@ -314,3 +318,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+} // End of MEMORIAL_INITIALIZED
