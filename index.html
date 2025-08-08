@@ -3,232 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>In memoria di Ross</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Memorial Bulletin Board</title>
     <style>
+        :root {
+            --board-color: #f0e6d2;
+            --pin-color: #c90a02;
+            --shadow: 4px 4px 10px rgba(0,0,0,0.3);
+        }
+        
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #5a3921;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.1"><rect width="100" height="100" fill="none" stroke="black" stroke-width="2"/></svg>');
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
         }
-        .header {
-            background-color: #343a40;
-            color: white;
-            padding: 3rem 0;
+        
+        .bulletin-board {
+            background-color: var(--board-color);
+            border: 20px solid #8b4513;
+            border-radius: 5px;
+            min-height: 80vh;
+            padding: 30px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+        
+        .board-title {
             text-align: center;
-            margin-bottom: 2rem;
+            font-family: 'Courier New', monospace;
+            font-size: 2.5rem;
+            color: #8b4513;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #8b4513;
+            padding-bottom: 10px;
         }
-        .carousel-item img {
-            height: 500px;
+        
+        .photos-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 30px;
+            padding: 20px;
+        }
+        
+        .photo-item {
+            position: relative;
+            background: white;
+            padding: 15px;
+            border-radius: 3px;
+            box-shadow: var(--shadow);
+            transform: rotate(var(--rotation));
+            transition: transform 0.3s ease;
+        }
+        
+        .photo-item:hover {
+            transform: rotate(0deg) scale(1.05);
+            z-index: 10;
+        }
+        
+        .photo-item::before {
+            content: "";
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            background: var(--pin-color);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        
+        .photo-item img {
+            width: 100%;
+            height: 200px;
             object-fit: cover;
+            display: block;
+            border: 1px solid #ddd;
         }
-        .memory-section {
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        .memory-card {
-            border-left: 4px solid #6c757d;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            background-color: #f8f9fa;
-        }
-        .memory-author {
-            font-weight: bold;
-            color: #343a40;
-        }
-        .memory-date {
-            color: #6c757d;
-            font-size: 0.8rem;
-        }
+        
         .upload-section {
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            padding: 2rem;
-        }
-        footer {
-            background-color: #343a40;
-            color: white;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 30px auto;
+            max-width: 500px;
             text-align: center;
-            padding: 1.5rem 0;
-            margin-top: 2rem;
+        }
+        
+        .delete-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            display: none;
+            z-index: 20;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        
+        .admin-btn {
+            position: absolute;
+            top: 40px;
+            right: 40px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .admin-btn.admin-active {
+            background: #4CAF50;
+        }
+        
+        button {
+            background: #8b4513;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #a0522d;
+        }
+        
+        input[type="file"] {
+            margin: 10px 0;
+            width: 100%;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>In Loving Memory of <span id="friendName">[Friend's Name]</span></h1>
-        <p class="lead"><span id="birthDate">[Birth Date]</span> - <span id="deathDate">[Death Date]</span></p>
-    </div>
-
-    <div class="container">
-        <!-- Photo Carousel -->
-        <div id="memoryCarousel" class="carousel slide mb-5" data-bs-ride="carousel">
-            <div class="carousel-indicators">
-                <!-- Indicators will be added dynamically -->
-            </div>
-            <div class="carousel-inner rounded">
-                <!-- Carousel items will be added dynamically -->
-                <div class="carousel-item active">
-                    <img src="https://via.placeholder.com/800x500?text=Add+Photo+of+Your+Friend" class="d-block w-100" alt="Memory photo">
-                </div>
-            </div>
-            <button class="carousel-control-prev" type="button" data-bs-target="#memoryCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Previous</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#memoryCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Next</span>
-            </button>
-        </div>
-
-        <!-- Memories Section -->
-        <div class="memory-section">
-            <h2 class="mb-4">Shared Memories</h2>
-            <div id="memoriesContainer">
-                <!-- Sample memory - can be removed -->
-                <div class="memory-card">
-                    <p class="memory-text">In memoria del bomber, condividete qui tutti i ricordi che avete di lui.s</p>
-                    <p class="memory-author">- John Doe</p>
-                    <p class="memory-date">July 15, 2023</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Upload Section -->
-        <div class="upload-section">
-            <h2 class="mb-4">Share Your Memories and Photos</h2>
-            <form id="memoryForm">
-                <div class="mb-3">
-                    <label for="memoryText" class="form-label">Your Memory</label>
-                    <textarea class="form-control" id="memoryText" rows="3" required></textarea>
-                </div>
-                <div class="mb-3">
-                    <label for="yourName" class="form-label">Your Name</label>
-                    <input type="text" class="form-control" id="yourName" required>
-                </div>
-                <div class="mb-3">
-                    <label for="photoUpload" class="form-label">Upload a Photo (optional)</label>
-                    <input class="form-control" type="file" id="photoUpload" accept="image/*">
-                </div>
-                <button type="submit" class="btn btn-primary">Share Memory</button>
-            </form>
-        </div>
-    </div>
-
-    <footer>
-        <p>Created with love by <span id="creatorName">[Your Name]</span> and friends</p>
-    </footer>
-
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Admin Button -->
+    <button class="admin-btn" id="adminBtn" title="Admin Login">🔒</button>
     
+    <!-- Bulletin Board -->
+    <div class="bulletin-board">
+        <h1 class="board-title">In Loving Memory</h1>
+        
+        <div class="photos-container" id="photosContainer">
+            <!-- Photos will be added here dynamically -->
+        </div>
+        
+        <div class="upload-section">
+            <h3>Add a Photo</h3>
+            <input type="file" id="photoUpload" accept="image/*">
+            <button onclick="uploadPhoto()">Add to Board</button>
+        </div>
+    </div>
+
     <script>
-        // Replace these with your friend's information
-        document.getElementById('friendName').textContent = "Your Friend's Name";
-        document.getElementById('birthDate').textContent = "January 1, 1980";
-        document.getElementById('deathDate').textContent = "July 1, 2023";
-        document.getElementById('creatorName').textContent = "Your Name";
-
-        // Sample photos - replace with actual photos of your friend
-        const photos = [
-            {src: "https://via.placeholder.com/800x500?text=Photo+1", alt: "Memory photo 1"},
-            {src: "https://via.placeholder.com/800x500?text=Photo+2", alt: "Memory photo 2"},
-            {src: "https://via.placeholder.com/800x500?text=Photo+3", alt: "Memory photo 3"}
+        // ADMIN PASSWORD - CHANGE THIS TO YOUR SECURE PASSWORD
+        const ADMIN_PASSWORD = "porrazzo123!";
+        let isAdminMode = false;
+        
+        // Initialize with sample photos
+        const initialPhotos = [
         ];
-
-        // Initialize carousel with photos
-        const carouselInner = document.querySelector('.carousel-inner');
-        const carouselIndicators = document.querySelector('.carousel-indicators');
         
-        // Clear the initial placeholder
-        carouselInner.innerHTML = '';
-        
-        photos.forEach((photo, index) => {
-            // Create carousel item
-            const item = document.createElement('div');
-            item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
-            item.innerHTML = `<img src="${photo.src}" class="d-block w-100" alt="${photo.alt}">`;
-            carouselInner.appendChild(item);
+        // Load photos on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadPhotos();
             
-            // Create indicator
-            const indicator = document.createElement('button');
-            indicator.type = 'button';
-            indicator.setAttribute('data-bs-target', '#memoryCarousel');
-            indicator.setAttribute('data-bs-slide-to', index.toString());
-            if (index === 0) indicator.className = 'active';
-            indicator.setAttribute('aria-current', index === 0 ? 'true' : 'false');
-            indicator.setAttribute('aria-label', `Slide ${index + 1}`);
-            carouselIndicators.appendChild(indicator);
+            // Setup admin button
+            document.getElementById('adminBtn').addEventListener('click', toggleAdminMode);
         });
-
-        // Handle memory submission
-        document.getElementById('memoryForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const memoryText = document.getElementById('memoryText').value;
-            const yourName = document.getElementById('yourName').value;
-            const photoUpload = document.getElementById('photoUpload').files[0];
-            
-            // Create new memory element
-            const memoryCard = document.createElement('div');
-            memoryCard.className = 'memory-card';
-            
-            const today = new Date();
-            const dateString = today.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+        
+        // Toggle admin mode
+        function toggleAdminMode() {
+            if (isAdminMode) {
+                // Logout
+                isAdminMode = false;
+                document.getElementById('adminBtn').classList.remove('admin-active');
+                document.getElementById('adminBtn').innerHTML = '🔒';
+                hideDeleteButtons();
+            } else {
+                // Prompt for password
+                const password = prompt('Enter admin password:');
+                if (password === ADMIN_PASSWORD) {
+                    isAdminMode = true;
+                    document.getElementById('adminBtn').classList.add('admin-active');
+                    document.getElementById('adminBtn').innerHTML = '👑';
+                    showDeleteButtons();
+                } else if (password !== null) {
+                    alert('Incorrect password');
+                }
+            }
+        }
+        
+        // Show delete buttons
+        function showDeleteButtons() {
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.style.display = 'block';
             });
+        }
+        
+        // Hide delete buttons
+        function hideDeleteButtons() {
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.style.display = 'none';
+            });
+        }
+        
+        // Load photos from localStorage or initialize
+        function loadPhotos() {
+            const photosContainer = document.getElementById('photosContainer');
+            photosContainer.innerHTML = '';
             
-            memoryCard.innerHTML = `
-                <p class="memory-text">${memoryText}</p>
-                <p class="memory-author">- ${yourName}</p>
-                <p class="memory-date">${dateString}</p>
+            // Get photos from localStorage or use initial ones
+            const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
+            
+            savedPhotos.forEach((photoUrl, index) => {
+                addPhotoToBoard(photoUrl, index);
+            });
+        }
+        
+        // Add a photo to the board
+        function addPhotoToBoard(photoUrl, index) {
+            const photosContainer = document.getElementById('photosContainer');
+            const rotation = (Math.random() * 10) - 5; // -5 to 5 degrees
+            
+            const photoItem = document.createElement('div');
+            photoItem.className = 'photo-item';
+            photoItem.style.setProperty('--rotation', `${rotation}deg`);
+            photoItem.dataset.index = index;
+            
+            photoItem.innerHTML = `
+                <img src="${photoUrl}" alt="Memory photo">
+                <button class="delete-btn" onclick="deletePhoto(${index})" style="display: ${isAdminMode ? 'block' : 'none'}">✕</button>
             `;
             
-            // Add to memories container
-            document.getElementById('memoriesContainer').prepend(memoryCard);
+            photosContainer.appendChild(photoItem);
+        }
+        
+        // Upload new photo
+        function uploadPhoto() {
+            const fileInput = document.getElementById('photoUpload');
+            const file = fileInput.files[0];
             
-            // Handle photo upload if present
-            if (photoUpload) {
+            if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // Add new photo to carousel
-                    const newIndex = photos.length;
-                    photos.push({src: e.target.result, alt: `Memory photo ${newIndex + 1}`});
+                    const newPhotoUrl = e.target.result;
                     
-                    // Create new carousel item
-                    const item = document.createElement('div');
-                    item.className = 'carousel-item';
-                    item.innerHTML = `<img src="${e.target.result}" class="d-block w-100" alt="Uploaded memory photo">`;
-                    carouselInner.appendChild(item);
+                    // Save to localStorage
+                    const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
+                    savedPhotos.push(newPhotoUrl);
+                    localStorage.setItem('memorialPhotos', JSON.stringify(savedPhotos));
                     
-                    // Create new indicator
-                    const indicator = document.createElement('button');
-                    indicator.type = 'button';
-                    indicator.setAttribute('data-bs-target', '#memoryCarousel');
-                    indicator.setAttribute('data-bs-slide-to', newIndex.toString());
-                    indicator.setAttribute('aria-label', `Slide ${newIndex + 1}`);
-                    carouselIndicators.appendChild(indicator);
+                    // Add to board
+                    addPhotoToBoard(newPhotoUrl, savedPhotos.length - 1);
+                    
+                    // Reset input
+                    fileInput.value = '';
                 };
-                reader.readAsDataURL(photoUpload);
+                reader.readAsDataURL(file);
+            } else {
+                alert('Please select a photo to upload');
             }
+        }
+        
+        // Delete a photo
+        function deletePhoto(index) {
+            if (!isAdminMode) return;
             
-            // Reset form
-            this.reset();
-            
-            // Show thank you message
-            alert('Thank you for sharing your memory. It has been added to the page.');
-        });
+            if (confirm('Are you sure you want to remove this photo?')) {
+                const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
+                savedPhotos.splice(index, 1);
+                localStorage.setItem('memorialPhotos', JSON.stringify(savedPhotos));
+                
+                // Reload photos
+                loadPhotos();
+            }
+        }
     </script>
 </body>
 </html>
