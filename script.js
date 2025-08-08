@@ -4,7 +4,6 @@ window.MEMORIAL_INITIALIZED = true;
 
 // ===== CONFIGURATION =====
 const DRIVE_FOLDER_ID = '18C7Dq4piMVvx8vRmbgYZScpaJsX87gVT';
-const API_KEY = 'AIzaSyBTlcx8EZ2Ez3XUJD6CU-TooQZoaiqffEc';
 const CLIENT_ID = '43317865979-ov2f56afttm1k76sm9qsqlstq3a1l3qi.apps.googleusercontent.com';
 const ADMIN_PASSWORD = "porrazzo123";
 
@@ -13,6 +12,12 @@ let isAdminMode = false;
 let currentMediaIndex = 0;
 let mediaItems = [];
 let tokenClient;
+let accessToken = null;
+
+// ===== ELEMENT REFERENCES =====
+const signinContainer = document.getElementById('signin-container');
+const signinBtn = document.getElementById('signin-btn');
+const photosContainer = document.getElementById('photosContainer');
 
 // ===== MESSAGE FUNCTIONS =====
 function showSuccessMessage(message) {
@@ -33,40 +38,44 @@ function showErrorMessage(message) {
     }
 }
 
-// ===== GOOGLE IDENTITY SERVICES =====
+// ===== GOOGLE AUTH INITIALIZATION =====
 function initGoogleAuth() {
-    // Wait for google object to be available
-    if (typeof google === 'undefined') {
-        setTimeout(initGoogleAuth, 100);
+    // Initialize token client
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.readonly',
+        callback: (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+                accessToken = tokenResponse.access_token;
+                signinContainer.style.display = 'none';
+                loadDriveMedia();
+            }
+        },
+        error_callback: (error) => {
+            console.error('Token error:', error);
+            showErrorMessage('Authentication failed. Please try signing in again.');
+            signinContainer.style.display = 'block';
+        }
+    });
+}
+
+// ===== SIGN IN HANDLER =====
+function handleSignIn() {
+    if (!tokenClient) {
+        showErrorMessage('Authentication service not loaded. Please refresh the page.');
         return;
     }
     
     try {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/drive.readonly',
-            callback: (tokenResponse) => {
-                if (tokenResponse && tokenResponse.access_token) {
-                    loadDriveMedia(tokenResponse.access_token);
-                }
-            },
-            error_callback: (error) => {
-                console.error('Token error:', error);
-                showErrorMessage('Authentication failed');
-                updateDriveStatus('Auth failed', 'disconnected');
-            }
-        });
-        
-        // Request token silently
-        tokenClient.requestAccessToken({prompt: ''});
+        tokenClient.requestAccessToken({prompt: 'select_account'});
     } catch (e) {
-        console.error('Google Auth init error:', e);
-        updateDriveStatus('Connection failed', 'disconnected');
+        console.error('Sign-in error:', e);
+        showErrorMessage('Failed to start authentication. Please allow popups for this site.');
     }
 }
 
 // ===== DRIVE API FUNCTIONS =====
-async function loadDriveMedia(accessToken) {
+async function loadDriveMedia() {
     updateDriveStatus('Loading memories...', 'disconnected');
     
     try {
@@ -116,15 +125,26 @@ async function loadDriveMedia(accessToken) {
         
         updateDriveStatus(msg, 'disconnected');
         showErrorMessage(msg);
+        
+        // Show empty state
+        if (photosContainer) {
+            photosContainer.classList.add('empty');
+            photosContainer.innerHTML = '';
+        }
     }
 }
 
 // ===== RENDER MEDIA =====
 function renderMedia() {
-    const photosContainer = document.getElementById('photosContainer');
     if (!photosContainer) return;
     
+    photosContainer.classList.remove('empty');
     photosContainer.innerHTML = '';
+
+    if (mediaItems.length === 0) {
+        photosContainer.classList.add('empty');
+        return;
+    }
 
     mediaItems.forEach((media, index) => {
         const rotation = (Math.random() * 10) - 5;
@@ -162,7 +182,7 @@ function openLightbox(index) {
     if (media.type === 'video') {
         lightboxContent.innerHTML = `
             <video controls autoplay>
-                <source src="https://drive.google.com/uc?export=download&id=${media.id}" type="${media.mimeType}">
+                <source src="https://drive.google.com/uc?export=view&id=${media.id}" type="${media.mimeType}">
             </video>
         `;
     } else {
@@ -171,19 +191,6 @@ function openLightbox(index) {
     
     mediaCounter.textContent = `${index + 1} / ${mediaItems.length}`;
     lightbox.classList.add('active');
-}
-
-function closeLightbox() {
-    const lightbox = document.getElementById('lightbox');
-    if (lightbox) lightbox.classList.remove('active');
-    
-    const video = document.querySelector('.lightbox-content video');
-    if (video) video.pause();
-}
-
-function changeMedia(direction) {
-    currentMediaIndex = (currentMediaIndex + direction + mediaItems.length) % mediaItems.length;
-    openLightbox(currentMediaIndex);
 }
 
 // ===== ADMIN FUNCTIONS =====
@@ -210,7 +217,7 @@ function toggleAdminMode() {
     }
 }
 
-// ===== STATS =====
+// ===== STATS & STATUS =====
 function updateStats() {
     const countElement = document.getElementById('photoCount');
     if (countElement) {
@@ -218,7 +225,6 @@ function updateStats() {
     }
 }
 
-// ===== DRIVE STATUS =====
 function updateDriveStatus(message, status) {
     const statusElement = document.getElementById('driveStatus');
     if (statusElement) {
@@ -234,10 +240,27 @@ function uploadPhoto() {
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOMContentLoaded');
+    // Initialize Google authentication if available
+    if (typeof google !== 'undefined') {
+        initGoogleAuth();
+    }
     
-    // Initialize Google authentication
-    setTimeout(initGoogleAuth, 100);
+    // Setup sign-in button
+    if (signinBtn) {
+        signinBtn.addEventListener('click', handleSignIn);
+    }
+    
+    // Hide sign-in container by default
+    if (signinContainer) {
+        signinContainer.style.display = 'none';
+    }
+    
+    // Show sign-in if no token after delay
+    setTimeout(() => {
+        if (!accessToken && signinContainer) {
+            signinContainer.style.display = 'block';
+        }
+    }, 2000);
     
     // Admin button setup
     const adminBtn = document.getElementById('adminBtn');
@@ -259,5 +282,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'ArrowRight') changeMedia(1);
         }
     });
+    
+    // Show empty state initially
+    if (photosContainer) {
+        photosContainer.classList.add('empty');
+    }
 });
 } // End of MEMORIAL_INITIALIZED
