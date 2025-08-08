@@ -1,0 +1,440 @@
+:root {
+    --roma-maroon: #9B1C2C;
+    --roma-gold: #D4A017;
+    --board-color: #f8f8f8;
+    --shadow: 2px 2px 8px rgba(0,0,0,0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    padding: 20px;
+    position: relative;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    max-width: 1200px;
+    margin: 20px auto;
+    position: relative;
+}
+
+h1 {
+    color: var(--roma-maroon);
+    font-size: 3rem;
+    margin-bottom: 10px;
+    font-family: 'Georgia', serif;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+.subtitle {
+    color: #555;
+    font-size: 1.2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.bulletin-board {
+    background-color: var(--board-color);
+    border: 15px solid var(--roma-maroon);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 30px;
+    position: relative;
+    min-height: 80vh;
+}
+
+.photos-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 30px;
+    padding: 20px;
+}
+
+.photo-item {
+    position: relative;
+    background: white;
+    border: 1px solid #e0e0e0;
+    box-shadow: var(--shadow);
+    padding: 15px;
+    border-radius: 3px;
+    transform: rotate(var(--rotation));
+    transition: all 0.3s ease;
+    cursor: pointer;
+    height: 280px;
+    overflow: hidden;
+}
+
+.photo-item:hover {
+    transform: rotate(0deg) scale(1.05);
+    box-shadow: 0 10px 20px rgba(155, 28, 44, 0.3);
+    z-index: 10;
+}
+
+.photo-item::before {
+    content: "";
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    background: var(--roma-maroon);
+    border-radius: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+.photo-item img, .photo-item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border: 1px solid #ddd;
+}
+
+.video-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.7);
+    color: white;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    opacity: 0.8;
+    z-index: 5;
+}
+
+button {
+    background: var(--roma-maroon);
+    color: white;
+    transition: all 0.3s;
+    border: none;
+    padding: 12px 25px;
+    margin-top: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+button:hover {
+    background: var(--roma-gold);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.delete-btn {
+    background: var(--roma-maroon);
+    color: white;
+    font-weight: bold;
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    border-radius: 50%;
+    border: none;
+    z-index: 10;
+}
+
+.delete-btn:hover {
+    background: #c00;
+    transform: scale(1.1);
+}
+
+.admin-btn {
+    background: var(--roma-maroon);
+    color: white;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    cursor: pointer;
+    font-size: 1.5rem;
+    z-index: 100;
+    box-shadow: 0 4px 8px rgba(155, 28, 44, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: none;
+}
+
+.admin-btn.admin-active {
+    background: var(--roma-gold);
+    color: var(--roma-maroon);
+    box-shadow: 0 4px 15px rgba(212, 160, 23, 0.6);
+}
+
+.upload-section {
+    background: rgba(212, 160, 23, 0.1);
+    border: 2px dashed var(--roma-gold);
+    padding: 20px;
+    border-radius: 10px;
+    margin: 30px auto;
+    max-width: 600px;
+    text-align: center;
+}
+
+input[type="file"] {
+    border: 1px solid var(--roma-gold);
+    padding: 12px;
+    border-radius: 4px;
+    width: 100%;
+    margin: 15px 0;
+    background: white;
+    cursor: pointer;
+}
+
+.stats {
+    background: rgba(155, 28, 44, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    margin-top: 20px;
+    font-weight: bold;
+    color: var(--roma-maroon);
+}
+
+/* Lightbox Styles */
+.lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.lightbox.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.lightbox-content {
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.lightbox-content img {
+    max-width: 100%;
+    max-height: 80vh;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+}
+
+.lightbox-content video {
+    max-width: 90vw;
+    max-height: 80vh;
+    outline: none;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: white;
+    font-size: 40px;
+    cursor: pointer;
+    background: rgba(0,0,0,0.5);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1010;
+}
+
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-size: 40px;
+    cursor: pointer;
+    background: rgba(0,0,0,0.5);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1010;
+}
+
+.lightbox-prev {
+    left: 20px;
+}
+
+.lightbox-next {
+    right: 20px;
+}
+
+.media-counter {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 1.2rem;
+    z-index: 1010;
+    text-shadow: 0 0 5px black;
+}
+
+footer {
+    text-align: center;
+    padding: 30px;
+    color: #666;
+    font-size: 0.9rem;
+    max-width: 1200px;
+    margin: 30px auto 0;
+}
+
+/* Progress bar styles */
+.progress-container {
+    width: 100%;
+    background-color: #f1f1f1;
+    border-radius: 4px;
+    margin: 15px 0;
+    display: none;
+}
+
+.progress-bar {
+    width: 0;
+    height: 10px;
+    background: linear-gradient(90deg, var(--roma-gold), var(--roma-maroon));
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 0.9rem;
+    margin-top: 5px;
+    color: var(--roma-maroon);
+    font-weight: bold;
+}
+
+.status-message {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    text-align: center;
+    display: none;
+    font-size: 0.9rem;
+}
+
+.status-success {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #27ae60;
+    border: 1px solid #27ae60;
+}
+
+.status-error {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #c0392b;
+    border: 1px solid #c0392b;
+}
+
+.drive-status {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.drive-status.connected {
+    color: #27ae60;
+}
+
+.drive-status.disconnected {
+    color: #e74c3c;
+}
+
+.drive-status i {
+    margin-right: 5px;
+}
+
+.memorial-date {
+    display: block;
+    margin-top: 10px;
+    font-size: 1rem;
+    color: var(--roma-maroon);
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .photos-container {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+        padding: 10px;
+    }
+    
+    h1 {
+        font-size: 2.2rem;
+    }
+    
+    .admin-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+    
+    .drive-status {
+        position: static;
+        margin: 10px auto;
+        width: fit-content;
+    }
+    
+    .lightbox-nav {
+        font-size: 30px;
+        width: 40px;
+        height: 40px;
+    }
+}
