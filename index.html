@@ -4,154 +4,89 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memorial Bulletin Board</title>
-    <style>
+        <style>
         :root {
-            --board-color: #f0e6d2;
-            --pin-color: #c90a02;
-            --shadow: 4px 4px 10px rgba(0,0,0,0.3);
+            --roma-maroon: #9B1C2C;
+            --roma-gold: #D4A017;
+            --board-color: #f8f8f8;
+            --shadow: 2px 2px 8px rgba(0,0,0,0.1);
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #5a3921;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.1"><rect width="100" height="100" fill="none" stroke="black" stroke-width="2"/></svg>');
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-            position: relative;
+            background-color: white;
+            background-image: none;
         }
         
         .bulletin-board {
             background-color: var(--board-color);
-            border: 20px solid #8b4513;
-            border-radius: 5px;
-            min-height: 80vh;
-            padding: 30px;
+            border: 15px solid var(--roma-maroon);
+            border-radius: 8px;
             box-shadow: var(--shadow);
-            position: relative;
         }
         
         .board-title {
-            text-align: center;
-            font-family: 'Courier New', monospace;
-            font-size: 2.5rem;
-            color: #8b4513;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #8b4513;
-            padding-bottom: 10px;
-        }
-        
-        .photos-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 30px;
-            padding: 20px;
+            color: var(--roma-maroon);
+            border-bottom: 3px solid var(--roma-gold);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
         
         .photo-item {
-            position: relative;
             background: white;
-            padding: 15px;
-            border-radius: 3px;
+            border: 1px solid #e0e0e0;
             box-shadow: var(--shadow);
-            transform: rotate(var(--rotation));
-            transition: transform 0.3s ease;
-        }
-        
-        .photo-item:hover {
-            transform: rotate(0deg) scale(1.05);
-            z-index: 10;
         }
         
         .photo-item::before {
-            content: "";
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            width: 30px;
-            height: 30px;
-            background: var(--pin-color);
-            border-radius: 50%;
-            transform: translateX(-50%);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            background: var(--roma-maroon);
         }
         
-        .photo-item img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            display: block;
-            border: 1px solid #ddd;
-        }
-        
-        .upload-section {
-            background: rgba(255, 255, 255, 0.7);
-            padding: 20px;
-            border-radius: 10px;
-            margin: 30px auto;
-            max-width: 500px;
-            text-align: center;
-        }
-        
-        .delete-btn {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background: #ff4d4d;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            cursor: pointer;
-            font-weight: bold;
-            display: none;
-            z-index: 20;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-        
-        .admin-btn {
-            position: absolute;
-            top: 40px;
-            right: 40px;
-            background: #333;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            cursor: pointer;
-            font-size: 1.2rem;
-            z-index: 100;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .admin-btn.admin-active {
-            background: #4CAF50;
+        .photo-item:hover {
+            box-shadow: 0 0 15px rgba(155, 28, 44, 0.3);
         }
         
         button {
-            background: #8b4513;
+            background: var(--roma-maroon);
             color: white;
-            border: none;
-            padding: 10px 20px;
-            margin-top: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.3s;
+            transition: all 0.3s;
         }
         
         button:hover {
-            background: #a0522d;
+            background: var(--roma-gold);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .delete-btn {
+            background: var(--roma-maroon);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .delete-btn:hover {
+            background: #c00;
+            transform: scale(1.1);
+        }
+        
+        .admin-btn {
+            background: var(--roma-maroon);
+            color: white;
+            box-shadow: 0 4px 8px rgba(155, 28, 44, 0.4);
+        }
+        
+        .admin-btn.admin-active {
+            background: var(--roma-gold);
+            color: var(--roma-maroon);
+        }
+        
+        .upload-section {
+            background: rgba(212, 160, 23, 0.1);
+            border: 2px dashed var(--roma-gold);
         }
         
         input[type="file"] {
-            margin: 10px 0;
-            width: 100%;
+            border: 1px solid var(--roma-gold);
+            padding: 8px;
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -161,14 +96,14 @@
     
     <!-- Bulletin Board -->
     <div class="bulletin-board">
-        <h1 class="board-title">In Loving Memory</h1>
+        <h1 class="board-title">for Ross, you'll always be in our hearts</h1>
         
         <div class="photos-container" id="photosContainer">
             <!-- Photos will be added here dynamically -->
         </div>
         
         <div class="upload-section">
-            <h3>Add a Photo</h3>
+            <h3>Add a photo</h3>
             <input type="file" id="photoUpload" accept="image/*">
             <button onclick="uploadPhoto()">Add to Board</button>
         </div>
@@ -176,16 +111,11 @@
 
     <script>
         // ADMIN PASSWORD - CHANGE THIS TO YOUR SECURE PASSWORD
-        const ADMIN_PASSWORD = "YourSecurePassword123";
+        const ADMIN_PASSWORD = "porrazzo123";
         let isAdminMode = false;
         
         // Initialize with sample photos
-        const initialPhotos = [
-            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300",
-            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300",
-            "https://images.unsplash.com/photo-1567532939604-b6b5b0e160de?auto=format&fit=crop&w=300",
-            "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300"
-        ];
+        const initialPhotos = [];
         
         // Load photos on page load
         window.addEventListener('DOMContentLoaded', () => {
@@ -262,7 +192,7 @@
             photosContainer.appendChild(photoItem);
         }
         
-        // Upload new photo
+        // upload new photo
         function uploadPhoto() {
             const fileInput = document.getElementById('photoUpload');
             const file = fileInput.files[0];
@@ -272,15 +202,15 @@
                 reader.onload = function(e) {
                     const newPhotoUrl = e.target.result;
                     
-                    // Save to localStorage
+                    // save to localStorage
                     const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
                     savedPhotos.push(newPhotoUrl);
                     localStorage.setItem('memorialPhotos', JSON.stringify(savedPhotos));
                     
-                    // Add to board
+                    // add to board
                     addPhotoToBoard(newPhotoUrl, savedPhotos.length - 1);
                     
-                    // Reset input
+                    // reset input
                     fileInput.value = '';
                 };
                 reader.readAsDataURL(file);
@@ -289,7 +219,7 @@
             }
         }
         
-        // Delete a photo
+        // delete a photo
         function deletePhoto(index) {
             if (!isAdminMode) return;
             
@@ -298,7 +228,7 @@
                 savedPhotos.splice(index, 1);
                 localStorage.setItem('memorialPhotos', JSON.stringify(savedPhotos));
                 
-                // Reload photos
+                // reload photos
                 loadPhotos();
             }
         }
