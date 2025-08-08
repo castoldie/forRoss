@@ -44,6 +44,7 @@
             font-size: 3rem;
             margin-bottom: 10px;
             font-family: 'Georgia', serif;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
         
         .subtitle {
@@ -108,7 +109,7 @@
         
         .photo-item img, .photo-item video {
             width: 100%;
-            height: 200px;
+            height: 100%;
             object-fit: cover;
             display: block;
             border: 1px solid #ddd;
@@ -129,15 +130,7 @@
             justify-content: center;
             font-size: 24px;
             opacity: 0.8;
-        }
-        
-        .photo-info {
-            margin-top: 10px;
-            font-size: 0.9rem;
-            color: #555;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            z-index: 5;
         }
         
         button {
@@ -177,6 +170,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.5);
             border-radius: 50%;
             border: none;
+            z-index: 10;
         }
         
         .delete-btn:hover {
@@ -226,6 +220,7 @@
             width: 100%;
             margin: 15px 0;
             background: white;
+            cursor: pointer;
         }
         
         .stats {
@@ -270,12 +265,14 @@
             max-height: 80vh;
             display: block;
             margin: 0 auto;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
         }
         
         .lightbox-content video {
             max-width: 90vw;
             max-height: 80vh;
             outline: none;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
         }
         
         .lightbox-close {
@@ -292,6 +289,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 1010;
         }
         
         .lightbox-nav {
@@ -308,6 +306,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 1010;
         }
         
         .lightbox-prev {
@@ -326,6 +325,8 @@
             text-align: center;
             color: white;
             font-size: 1.2rem;
+            z-index: 1010;
+            text-shadow: 0 0 5px black;
         }
         
         footer {
@@ -349,7 +350,7 @@
         .progress-bar {
             width: 0;
             height: 10px;
-            background-color: var(--roma-gold);
+            background: linear-gradient(90deg, var(--roma-gold), var(--roma-maroon));
             border-radius: 4px;
             transition: width 0.3s;
         }
@@ -368,19 +369,21 @@
             border-radius: 4px;
             text-align: center;
             display: none;
+            font-size: 0.9rem;
         }
         
         .status-success {
             background-color: rgba(46, 204, 113, 0.2);
             color: #27ae60;
+            border: 1px solid #27ae60;
         }
         
         .status-error {
             background-color: rgba(231, 76, 60, 0.2);
             color: #c0392b;
+            border: 1px solid #c0392b;
         }
         
-        /* Drive connection indicator */
         .drive-status {
             position: absolute;
             top: 20px;
@@ -406,6 +409,14 @@
             margin-right: 5px;
         }
         
+        .memorial-date {
+            display: block;
+            margin-top: 10px;
+            font-size: 1rem;
+            color: var(--roma-maroon);
+            font-style: italic;
+        }
+        
         @media (max-width: 768px) {
             .photos-container {
                 grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -428,6 +439,12 @@
                 margin: 10px auto;
                 width: fit-content;
             }
+            
+            .lightbox-nav {
+                font-size: 30px;
+                width: 40px;
+                height: 40px;
+            }
         }
     </style>
 </head>
@@ -435,16 +452,12 @@
     <!-- Admin Button -->
     <button class="admin-btn" id="adminBtn" title="Admin Login">🔒</button>
     
-    <!-- Drive Connection Status -->
-    <div class="drive-status connected" id="driveStatus">
-        <i class="fas fa-check-circle"></i> Collegato a Google Drive
-    </div>
-    
     <!-- Header -->
     <div class="header">
         <h1>in memoria di Ross</h1>
         <div class="subtitle">
             Resterai sempre nei nostri cuori Bomberone
+            <span class="memorial-date">6 Agosto 2025</span>
         </div>
     </div>
     
@@ -470,7 +483,7 @@
             
             <button onclick="uploadPhoto()"><i class="fas fa-plus-circle"></i> Daje</button>
             <div class="stats">
-                <i class="fas fa-images"></i> <span id="photoCount">0</span> Condivisi
+                <i class="fas fa-images"></i> <span id="photoCount">0</span> Ricordi condivisi
             </div>
         </div>
     </div>
@@ -485,7 +498,7 @@
     </div>
     
     <footer>
-        per Rosemberg Porcacchia, venuto a mancare il 6 Agosto 2025
+        per Rosemberg Porcacchia, sempre con noi
     </footer>
 
     <script>
@@ -500,10 +513,6 @@
         
         // Track filenames to prevent duplicates
         const uploadedFilenames = new Set();
-        
-        // Google Drive App Script URL (replace with your own)
-        // Create this by following instructions below
-        const DRIVE_UPLOAD_URL = 'https://script.google.com/macros/s/AKfycby2bOqqgzbKXDdVZTH8uLauNIjD64NerHDcK1JKRUqfgH4aHLij8wkzvYI9NZNJfWbW6g/exec';
         
         // Load media on page load
         window.addEventListener('DOMContentLoaded', () => {
@@ -535,7 +544,7 @@
         // Show delete buttons
         function showDeleteButtons() {
             document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.style.display = 'block';
+                btn.style.display = 'flex';
             });
         }
         
@@ -567,7 +576,7 @@
             updateStats();
         }
         
-        // Add media to the board
+        // Add media to the board (filename display removed)
         function addMediaToBoard(media, index) {
             const photosContainer = document.getElementById('photosContainer');
             const rotation = (Math.random() * 10) - 5;
@@ -595,15 +604,14 @@
             
             mediaItem.innerHTML = `
                 ${mediaElement}
-                <div class="photo-info">${media.originalName}</div>
                 <button class="delete-btn" onclick="deleteMedia(event, ${index})" style="display: ${isAdminMode ? 'flex' : 'none'}">✕</button>
             `;
             
             photosContainer.appendChild(mediaItem);
         }
         
-        // Upload new media with progress bar and Google Drive integration
-        async function uploadPhoto() {
+        // Upload new media with progress bar
+        function uploadPhoto() {
             const fileInput = document.getElementById('photoUpload');
             const files = fileInput.files;
             
@@ -622,10 +630,35 @@
             let newMedia = [];
             
             // Process each file
-            for (const file of files) {
+            const processNextFile = () => {
+                if (uploadCount >= files.length) {
+                    // Final processing after all files
+                    if (newMedia.length > 0) {
+                        const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
+                        savedMedia.push(...newMedia);
+                        localStorage.setItem('memorialMedia', JSON.stringify(savedMedia));
+                    }
+                    
+                    // Update stats and reset UI
+                    updateStats();
+                    fileInput.value = '';
+                    
+                    // Hide progress bar after delay
+                    setTimeout(() => {
+                        document.getElementById('progressContainer').style.display = 'none';
+                    }, 2000);
+                    
+                    return;
+                }
+                
+                const file = files[uploadCount];
+                uploadCount++;
+                
                 if (!file.type.match('image.*') && !file.type.match('video.*')) {
                     skippedCount++;
-                    continue;
+                    updateProgress((uploadCount / files.length) * 100, `Caricamento ${uploadCount}/${files.length}`);
+                    processNextFile();
+                    return;
                 }
                 
                 // Generate unique identifier for each file
@@ -635,98 +668,48 @@
                 if (uploadedFilenames.has(fileIdentifier)) {
                     showStatusMessage(`Salto duplicato: ${file.name}`);
                     skippedCount++;
-                    uploadCount++;
                     updateProgress((uploadCount / files.length) * 100, `Caricamento ${uploadCount}/${files.length}`);
-                    continue;
+                    processNextFile();
+                    return;
                 }
                 
                 try {
                     // Show progress
                     updateProgress((uploadCount / files.length) * 100, `Caricamento ${file.name}...`);
                     
-                    // Upload to Google Drive
-                    const driveUrl = await uploadToDrive(file);
-                    
-                    // Create media item
-                    const newMediaItem = {
-                        filename: fileIdentifier,
-                        originalName: file.name,
-                        dataUrl: driveUrl, // Use Google Drive URL
-                        type: file.type.match('video.*') ? 'video' : 'image',
-                        mimeType: file.type,
-                        uploadedAt: new Date().toISOString()
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        uploadedFilenames.add(fileIdentifier);
+                        
+                        const newMediaItem = {
+                            filename: fileIdentifier,
+                            originalName: file.name,
+                            dataUrl: e.target.result,
+                            type: file.type.match('video.*') ? 'video' : 'image',
+                            mimeType: file.type,
+                            uploadedAt: new Date().toISOString()
+                        };
+                        
+                        newMedia.push(newMediaItem);
+                        
+                        // Add to board immediately
+                        addMediaToBoard(newMediaItem, mediaItems.length + newMedia.length - 1);
+                        
+                        // Continue processing
+                        setTimeout(processNextFile, 100);
                     };
-                    
-                    newMedia.push(newMediaItem);
-                    uploadedFilenames.add(fileIdentifier);
-                    
-                    // Update progress
-                    uploadCount++;
-                    updateProgress((uploadCount / files.length) * 100, `Caricamento ${uploadCount}/${files.length}`);
-                    
-                    // Add to board immediately
-                    addMediaToBoard(newMediaItem, mediaItems.length + newMedia.length - 1);
-                    
+                    reader.readAsDataURL(file);
                 } catch (error) {
                     console.error('Upload error:', error);
                     showErrorMessage(`Errore nel caricamento di ${file.name}: ${error.message}`);
                     skippedCount++;
-                    uploadCount++;
                     updateProgress((uploadCount / files.length) * 100, `Caricamento ${uploadCount}/${files.length}`);
+                    processNextFile();
                 }
-            }
+            };
             
-            // Final processing after all files
-            if (newMedia.length > 0) {
-                const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
-                savedMedia.push(...newMedia);
-                localStorage.setItem('memorialMedia', JSON.stringify(savedMedia));
-                
-                // Show success message
-                showSuccessMessage(`Caricati ${newMedia.length} elementi! ${skippedCount > 0 ? `(${skippedCount} saltati)` : ''}`);
-            } else if (skippedCount > 0) {
-                showStatusMessage(`Nessun nuovo elemento caricato. ${skippedCount} elementi saltati.`);
-            }
-            
-            // Update stats and reset UI
-            updateStats();
-            fileInput.value = '';
-            
-            // Hide progress bar after delay
-            setTimeout(() => {
-                document.getElementById('progressContainer').style.display = 'none';
-            }, 2000);
-        }
-        
-        // Upload file to Google Drive via App Script
-        async function uploadToDrive(file) {
-            // For demo purposes, we'll simulate the upload
-            // In a real implementation, you would use the DRIVE_UPLOAD_URL
-            
-            // Simulate upload delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // In a real implementation, you would do:
-            /*
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            const response = await fetch(DRIVE_UPLOAD_URL, {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (response.ok && result.url) {
-                return result.url;
-            } else {
-                throw new Error(result.error || 'Errore nel caricamento su Google Drive');
-            }
-            */
-            
-            // For demo, return a placeholder
-            return URL.createObjectURL(file);
+            // Start processing files
+            processNextFile();
         }
         
         // Delete media
@@ -860,7 +843,7 @@
             document.getElementById('errorMessage').style.display = 'none';
         }
         
-        // Sample data for initial display
+        // Initialize with sample media
         window.onload = function() {
             // Add sample media if empty
             const savedMedia = JSON.parse(localStorage.getItem('memorialMedia')) || initialMedia;
