@@ -1,3 +1,7 @@
+// Prevent duplicate execution
+if (!window.MEMORIAL_INITIALIZED) {
+window.MEMORIAL_INITIALIZED = true;
+
 // ===== CONFIGURATION =====
 const DRIVE_FOLDER_ID = '18C7Dq4piMVvx8vRmbgYZScpaJsX87gVT';
 const API_KEY = 'AIzaSyBTlcx8EZ2Ez3XUJD6CU-TooQZoaiqffEc';
@@ -31,12 +35,13 @@ function showErrorMessage(message) {
 
 // ===== GOOGLE IDENTITY SERVICES (NEW AUTH) =====
 function initGoogleAuth() {
+    // Initialize token client
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: 'https://www.googleapis.com/auth/drive.readonly',
         callback: (tokenResponse) => {
             if (tokenResponse && tokenResponse.access_token) {
-                initGapiClient(tokenResponse.access_token);
+                loadDriveMedia(tokenResponse.access_token);
             }
         },
         error_callback: (error) => {
@@ -45,42 +50,45 @@ function initGoogleAuth() {
             updateDriveStatus('Auth failed', 'disconnected');
         }
     });
-}
-
-function initGapiClient(accessToken) {
-    gapi.load('client', () => {
-        gapi.client.init({
-            apiKey: API_KEY,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-        }).then(() => {
-            // Set the access token
-            gapi.client.setToken({access_token: accessToken});
-            
-            console.log('Google API initialized');
-            updateDriveStatus('Connected to memories', 'connected');
-            loadDriveMedia();
-        }).catch(error => {
-            console.error('GAPI init error:', error);
-            showErrorMessage('API initialization failed');
+    
+    // Request token silently
+    setTimeout(() => {
+        try {
+            tokenClient.requestAccessToken({prompt: ''});
+        } catch (e) {
+            console.error('Token request error:', e);
             updateDriveStatus('Connection failed', 'disconnected');
-        });
-    });
+        }
+    }, 1000);
 }
 
 // ===== DRIVE API FUNCTIONS =====
-async function loadDriveMedia() {
+async function loadDriveMedia(accessToken) {
     updateDriveStatus('Loading memories...', 'disconnected');
     
     try {
-        const response = await gapi.client.drive.files.list({
-            q: `'${DRIVE_FOLDER_ID}' in parents and 
-                (mimeType contains 'image/' or mimeType contains 'video/') and 
-                trashed = false`,
-            fields: 'files(id, name, mimeType, webContentLink, thumbnailLink)',
-            orderBy: 'createdTime desc'
-        });
+        const response = await fetch(
+            `https://www.googleapis.com/drive/v3/files?` +
+            `q='${encodeURIComponent(DRIVE_FOLDER_ID)}'+in+parents+and+` +
+            `(mimeType+contains+'image/'+or+mimeType+contains+'video/')+and+trashed=false&` +
+            `fields=files(id,name,mimeType,webContentLink,thumbnailLink)&` +
+            `orderBy=createdTime+desc`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Accept': 'application/json'
+                }
+            }
+        );
         
-        const files = response.result.files;
+        if (!response.ok) {
+            const error = await response.json();
+            throw error;
+        }
+        
+        const data = await response.json();
+        const files = data.files || [];
+        
         mediaItems = files.map(file => ({
             id: file.id,
             name: file.name,
@@ -97,9 +105,9 @@ async function loadDriveMedia() {
         console.error('Drive API error:', error);
         let msg = 'Error loading memories';
         
-        if (error.status === 403) {
+        if (error.error && error.error.code === 403) {
             msg = 'Permission denied. Please check sharing settings.';
-        } else if (error.status === 404) {
+        } else if (error.error && error.error.code === 404) {
             msg = 'Folder not found. Check folder ID.';
         }
         
@@ -170,6 +178,11 @@ function closeLightbox() {
     if (video) video.pause();
 }
 
+function changeMedia(direction) {
+    currentMediaIndex = (currentMediaIndex + direction + mediaItems.length) % mediaItems.length;
+    openLightbox(currentMediaIndex);
+}
+
 // ===== ADMIN FUNCTIONS =====
 function toggleAdminMode() {
     if (isAdminMode) {
@@ -219,7 +232,12 @@ function uploadPhoto() {
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize Google Identity Services
-    initGoogleAuth();
+    if (typeof google !== 'undefined') {
+        initGoogleAuth();
+    } else {
+        console.error('Google Identity Services not loaded');
+        updateDriveStatus('Auth service unavailable', 'disconnected');
+    }
     
     const adminBtn = document.getElementById('adminBtn');
     if (adminBtn) {
@@ -237,15 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const lightbox = document.getElementById('lightbox');
         if (lightbox && lightbox.classList.contains('active')) {
             if (e.key === 'Escape') closeLightbox();
-            if (e.key === 'ArrowLeft') openLightbox(Math.max(0, currentMediaIndex - 1));
-            if (e.key === 'ArrowRight') openLightbox(Math.min(mediaItems.length - 1, currentMediaIndex + 1));
+            if (e.key === 'ArrowLeft') changeMedia(-1);
+            if (e.key === 'ArrowRight') changeMedia(1);
         }
     });
-    
-    // Start authentication (non-blocking)
-    setTimeout(() => {
-        if (tokenClient) {
-            tokenClient.requestAccessToken({prompt: ''});
-        }
-    }, 1000);
 });
+} // End of MEMORIAL_INITIALIZED
