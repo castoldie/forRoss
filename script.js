@@ -6,6 +6,7 @@ window.MEMORIAL_INITIALIZED = true;
 const DRIVE_FOLDER_ID = '18C7Dq4piMVvx8vRmbgYZScpaJsX87gVT';
 const CLIENT_ID = '43317865979-ov2f56afttm1k76sm9qsqlstq3a1l3qi.apps.googleusercontent.com';
 const ADMIN_PASSWORD = "porrazzo123";
+const API_KEY = 'AIzaSyBTlcx8EZ2Ez3XUJD6CU-TooQZoaiqffEc'; // Add this line
 
 // ===== STATE VARIABLES =====
 let isAdminMode = false;
@@ -40,23 +41,32 @@ function showErrorMessage(message) {
 
 // ===== GOOGLE AUTH INITIALIZATION =====
 function initGoogleAuth() {
-    // Initialize token client
-    tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.readonly',
-        callback: (tokenResponse) => {
-            if (tokenResponse && tokenResponse.access_token) {
-                accessToken = tokenResponse.access_token;
-                signinContainer.style.display = 'none';
-                loadDriveMedia();
+    try {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/drive.readonly',
+            callback: (tokenResponse) => {
+                if (tokenResponse && tokenResponse.access_token) {
+                    accessToken = tokenResponse.access_token;
+                    signinContainer.style.display = 'none';
+                    loadDriveMedia();
+                }
+            },
+            error_callback: (error) => {
+                console.error('Token error:', error);
+                if (error.type === 'popup_failed_to_open') {
+                    showErrorMessage('Popup blocked. Using fallback authentication...');
+                    manualAuthFallback();
+                } else {
+                    showErrorMessage('Authentication failed. Please try again.');
+                    signinContainer.style.display = 'block';
+                }
             }
-        },
-        error_callback: (error) => {
-            console.error('Token error:', error);
-            showErrorMessage('Authentication failed. Please try signing in again.');
-            signinContainer.style.display = 'block';
-        }
-    });
+        });
+    } catch (e) {
+        console.error('Google auth init error:', e);
+        signinContainer.style.display = 'block';
+    }
 }
 
 // ===== SIGN IN HANDLER =====
@@ -84,10 +94,12 @@ async function loadDriveMedia() {
             `q='${encodeURIComponent(DRIVE_FOLDER_ID)}'+in+parents+and+` +
             `(mimeType+contains+'image/'+or+mimeType+contains+'video/')+and+trashed=false&` +
             `fields=files(id,name,mimeType,webContentLink,thumbnailLink)&` +
-            `orderBy=createdTime+desc`,
+            `orderBy=createdTime+desc&` +  // Add API key parameter
+            `key=${API_KEY}`,  // Add this line
+            
             {
                 headers: {
-                    'Authorization': `Bearer ${accessToken}`,
+                    'Authorization': accessToken ? `Bearer ${accessToken}` : '',
                     'Accept': 'application/json'
                 }
             }
@@ -231,6 +243,32 @@ function updateDriveStatus(message, status) {
         statusElement.innerHTML = `<i class="fas fa-hdd"></i> <span>${message}</span>`;
         statusElement.className = `drive-status ${status}`;
     }
+}
+
+function manualAuthFallback() {
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${CLIENT_ID}&` +
+        `response_type=token&` +
+        `scope=https://www.googleapis.com/auth/drive.readonly&` +
+        `redirect_uri=${encodeURIComponent(window.location.origin)}`;
+    
+    const authWindow = window.open(authUrl, '_blank', 'width=500,height=600');
+    
+    const checkAuth = setInterval(() => {
+        try {
+            if (authWindow.location.href.includes('access_token=')) {
+                clearInterval(checkAuth);
+                const hash = new URL(authWindow.location.href).hash.substring(1);
+                const params = new URLSearchParams(hash);
+                accessToken = params.get('access_token');
+                authWindow.close();
+                signinContainer.style.display = 'none';
+                loadDriveMedia();
+            }
+        } catch (e) {
+            // Cross-origin error expected
+        }
+    }, 500);
 }
 
 // ===== UPLOAD HANDLER =====
