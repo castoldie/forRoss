@@ -1,19 +1,65 @@
-// Configuration - YOU MUST SET THESE VALUES
+// ===== CONFIGURATION =====
 const DRIVE_FOLDER_ID = '18C7Dq4piMVvx8vRmbgYZScpaJsX87gVT';
 const API_KEY = 'AIzaSyBTlcx8EZ2Ez3XUJD6CU-TooQZoaiqffEc';
 const CLIENT_ID = '43317865979-ov2f56afttm1k76sm9qsqlstq3a1l3qi.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-
-// Admin and state variables
 const ADMIN_PASSWORD = "porrazzo123";
+
+// ===== STATE VARIABLES =====
 let isAdminMode = false;
 let currentMediaIndex = 0;
 let mediaItems = [];
 let gapiInitialized = false;
 
-// Initialize Google API
+// ===== MESSAGE FUNCTIONS =====
+function showSuccessMessage(message) {
+    const element = document.getElementById('successMessage');
+    if (element) {
+        element.textContent = message;
+        element.style.display = 'block';
+        setTimeout(() => element.style.display = 'none', 5000);
+    }
+}
+
+function showErrorMessage(message) {
+    const element = document.getElementById('errorMessage');
+    if (element) {
+        element.textContent = message;
+        element.style.display = 'block';
+        setTimeout(() => element.style.display = 'none', 5000);
+    }
+}
+
+function hideMessages() {
+    const success = document.getElementById('successMessage');
+    const error = document.getElementById('errorMessage');
+    if (success) success.style.display = 'none';
+    if (error) error.style.display = 'none';
+}
+
+// ===== DRIVE STATUS =====
+function updateDriveStatus(message, status) {
+    const statusElement = document.getElementById('driveStatus');
+    if (statusElement) {
+        statusElement.innerHTML = `<i class="fas fa-hdd"></i> <span>${message}</span>`;
+        statusElement.className = `drive-status ${status}`;
+    }
+}
+
+// ===== GOOGLE DRIVE API =====
 function initGoogleDrive() {
-    gapi.load('client:auth2', initClient);
+    if (typeof gapi === 'undefined') {
+        showErrorMessage('Google API library not loaded');
+        return;
+    }
+    
+    gapi.load('client:auth2', {
+        callback: initClient,
+        onerror: () => {
+            showErrorMessage('Failed to load Google API client');
+            updateDriveStatus('API load failed', 'disconnected');
+        }
+    });
 }
 
 function initClient() {
@@ -23,40 +69,35 @@ function initClient() {
         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
         scope: SCOPES
     }).then(() => {
+        console.log('Google API initialized successfully');
         gapiInitialized = true;
         updateDriveStatus('Connected to memories', 'connected');
         loadDriveMedia();
-        
-        // Handle auth status changes
-        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
-        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-
-    }, (error) => {
-        console.error('Google API init error:', error);
-        updateDriveStatus('Connection failed', 'disconnected');
-        showErrorMessage(`API Error: ${error.details || error.message}`);
-
     }).catch(error => {
-        console.error('Init error:', error);
-        showErrorMessage(`API Init Failed: ${error.error || error.details}`);
+        console.error('Google API init error:', error);
+        let errorMsg = 'API initialization failed';
+        
+        if (error.details) {
+            errorMsg += `: ${error.details}`;
+        } else if (error.error) {
+            errorMsg += `: ${error.error}`;
+        }
+        
+        showErrorMessage(errorMsg);
+        updateDriveStatus('Connection failed', 'disconnected');
     });
 }
 
-// Load media from Google Drive
-function loadDriveMedia() {
-    if (!gapiInitialized) {
-        updateDriveStatus('Connecting...', 'disconnected');
-        initGoogleDrive();
-        return;
-    }
-
+async function loadDriveMedia() {
     updateDriveStatus('Loading memories...', 'disconnected');
-
-    gapi.client.drive.files.list({
-        q: `'${DRIVE_FOLDER_ID}' in parents and (mimeType contains 'image/' or mimeType contains 'video/')`,
-        fields: 'files(id, name, mimeType, webContentLink, thumbnailLink)',
-        orderBy: 'createdTime desc'
-    }).then(response => {
+    
+    try {
+        const response = await gapi.client.drive.files.list({
+            q: `'${DRIVE_FOLDER_ID}' in parents and (mimeType contains 'image/' or mimeType contains 'video/') and trashed = false`,
+            fields: 'files(id, name, mimeType, webContentLink, thumbnailLink)',
+            orderBy: 'createdTime desc'
+        });
+        
         const files = response.result.files;
         mediaItems = files.map(file => ({
             id: file.id,
@@ -66,18 +107,30 @@ function loadDriveMedia() {
             url: file.webContentLink,
             thumbnail: file.thumbnailLink || `https://drive.google.com/thumbnail?id=${file.id}&sz=w500`
         }));
-
+        
         renderMedia();
+        updateDriveStatus('Memories loaded', 'connected');
         updateStats();
-    }, error => {
+    } catch (error) {
         console.error('Drive API error:', error);
-        updateDriveStatus('Error loading memories', 'disconnected');
-    });
+        let msg = 'Error loading memories';
+        
+        if (error.status === 403) {
+            msg = 'Permission denied. Please check sharing settings.';
+        } else if (error.status === 404) {
+            msg = 'Folder not found. Check folder ID.';
+        }
+        
+        updateDriveStatus(msg, 'disconnected');
+        showErrorMessage(msg);
+    }
 }
 
-// Render media to the board
+// ===== RENDER MEDIA =====
 function renderMedia() {
     const photosContainer = document.getElementById('photosContainer');
+    if (!photosContainer) return;
+    
     photosContainer.innerHTML = '';
 
     mediaItems.forEach((media, index) => {
@@ -92,56 +145,25 @@ function renderMedia() {
         let mediaElement = '';
         if (media.type === 'video') {
             mediaElement = `
-                <img src="${media.thumbnail}" alt="${media.name}">
+                <img src="${media.thumbnail}" alt="${media.name}" loading="lazy">
                 <div class="video-indicator">
                     <i class="fas fa-play"></i>
                 </div>
             `;
         } else {
-            mediaElement = `<img src="${media.thumbnail}" alt="${media.name}">`;
+            mediaElement = `<img src="${media.thumbnail}" alt="${media.name}" loading="lazy">`;
         }
         
         mediaItem.innerHTML = `
             ${mediaElement}
-            <button class="delete-btn" onclick="deleteMedia(event, '${media.id}')" style="display: ${isAdminMode ? 'flex' : 'none'}">✕</button>
+            <button class="delete-btn" onclick="deleteMedia(event, '${media.id}')" style="display: none">✕</button>
         `;
         
         photosContainer.appendChild(mediaItem);
     });
 }
 
-// Update drive connection status
-function updateDriveStatus(message, status) {
-    const statusElement = document.getElementById('driveStatus');
-    statusElement.innerHTML = `<i class="fas fa-hdd"></i> <span>${message}</span>`;
-    statusElement.className = `drive-status ${status}`;
-}
-
-// Delete media (admin only)
-function deleteMedia(event, fileId) {
-    event.stopPropagation();
-    
-    if (!isAdminMode) return;
-    
-    if (confirm('Sei sicuro di voler rimuovere questo elemento?')) {
-        gapi.client.drive.files.delete({
-            fileId: fileId
-        }).then(() => {
-            loadDriveMedia(); // Refresh media
-        }, error => {
-            console.error('Delete error:', error);
-            showErrorMessage('Errore nella cancellazione');
-        });
-    }
-}
-
-// Initialize on page load
-window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('adminBtn').addEventListener('click', toggleAdminMode);
-    initGoogleDrive();
-});
-
-// Lightbox functions (updated for Drive URLs)
+// ===== LIGHTBOX FUNCTIONS =====
 function openLightbox(index) {
     currentMediaIndex = index;
     const media = mediaItems[index];
@@ -149,6 +171,8 @@ function openLightbox(index) {
     const lightbox = document.getElementById('lightbox');
     const lightboxContent = document.getElementById('lightboxContent');
     const mediaCounter = document.getElementById('mediaCounter');
+    
+    if (!lightbox || !lightboxContent || !mediaCounter) return;
     
     if (media.type === 'video') {
         lightboxContent.innerHTML = `
@@ -165,19 +189,45 @@ function openLightbox(index) {
     lightbox.classList.add('active');
 }
 
-// Toggle admin mode
+function closeLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox) lightbox.classList.remove('active');
+    
+    const video = document.querySelector('.lightbox-content video');
+    if (video) video.pause();
+}
+
+function changeMedia(direction) {
+    currentMediaIndex += direction;
+    
+    if (currentMediaIndex < 0) {
+        currentMediaIndex = mediaItems.length - 1;
+    } else if (currentMediaIndex >= mediaItems.length) {
+        currentMediaIndex = 0;
+    }
+    
+    openLightbox(currentMediaIndex);
+}
+
+// ===== ADMIN FUNCTIONS =====
 function toggleAdminMode() {
     if (isAdminMode) {
         isAdminMode = false;
-        document.getElementById('adminBtn').classList.remove('admin-active');
-        document.getElementById('adminBtn').innerHTML = '🔒';
+        const adminBtn = document.getElementById('adminBtn');
+        if (adminBtn) {
+            adminBtn.classList.remove('admin-active');
+            adminBtn.innerHTML = '🔒';
+        }
         hideDeleteButtons();
     } else {
         const password = prompt('Enter admin password:');
         if (password === ADMIN_PASSWORD) {
             isAdminMode = true;
-            document.getElementById('adminBtn').classList.add('admin-active');
-            document.getElementById('adminBtn').innerHTML = '👑';
+            const adminBtn = document.getElementById('adminBtn');
+            if (adminBtn) {
+                adminBtn.classList.add('admin-active');
+                adminBtn.innerHTML = '👑';
+            }
             showDeleteButtons();
         } else if (password !== null) {
             alert('Password errata');
@@ -185,7 +235,6 @@ function toggleAdminMode() {
     }
 }
 
-// Show/hide delete buttons
 function showDeleteButtons() {
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.style.display = 'flex';
@@ -198,45 +247,70 @@ function hideDeleteButtons() {
     });
 }
 
-// Update stats
-function updateStats() {
-    document.getElementById('photoCount').textContent = mediaItems.length;
+async function deleteMedia(event, fileId) {
+    event.stopPropagation();
+    
+    if (!isAdminMode) return;
+    
+    if (confirm('Sei sicuro di voler rimuovere questo elemento?')) {
+        try {
+            await gapi.client.drive.files.delete({ fileId });
+            loadDriveMedia();
+        } catch (error) {
+            console.error('Delete error:', error);
+            showErrorMessage('Errore nella cancellazione');
+        }
+    }
 }
 
-// Upload function removed - Use Google Drive interface for uploads
+// ===== STATS =====
+function updateStats() {
+    const countElement = document.getElementById('photoCount');
+    if (countElement) {
+        countElement.textContent = mediaItems.length;
+    }
+}
+
+// ===== UPLOAD HANDLER =====
 function uploadPhoto() {
     showErrorMessage('Carica direttamente su Google Drive. Aggiorna la pagina dopo il caricamento.');
 }
 
-function updateSigninStatus(isSignedIn) {
-    if (isSignedIn) {
-        loadDriveMedia();
-    } else {
-        // Handle sign-in
-        gapi.auth2.getAuthInstance().signIn();
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded');
+    const adminBtn = document.getElementById('adminBtn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', toggleAdminMode);
     }
-}
-
-function showSuccessMessage(message) {
-    const element = document.getElementById('successMessage');
-    element.textContent = message;
-    element.style.display = 'block';
-    setTimeout(() => element.style.display = 'none', 5000);
-}
-
-function showErrorMessage(message) {
-    const element = document.getElementById('errorMessage');
-    element.textContent = message;
-    element.style.display = 'block';
-    setTimeout(() => element.style.display = 'none', 5000);
-}
-
-function hideMessages() {
-    document.getElementById('successMessage').style.display = 'none';
-    document.getElementById('errorMessage').style.display = 'none';
-}
-
-
-
-// Other functions (closeLightbox, changeMedia, etc.) remain the same as before
-// ... [Keep all your existing lightbox and utility functions] ...
+    
+    // Initialize Google Drive API
+    if (typeof gapi !== 'undefined') {
+        initGoogleDrive();
+    } else {
+        console.error('gapi is not loaded');
+        updateDriveStatus('Google API not available', 'disconnected');
+    }
+    
+    // Event delegation for lightbox close
+    document.addEventListener('click', (e) => {
+        const lightbox = document.getElementById('lightbox');
+        if (lightbox && e.target === lightbox) {
+            closeLightbox();
+        }
+    });
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        const lightbox = document.getElementById('lightbox');
+        if (lightbox && lightbox.classList.contains('active')) {
+            if (e.key === 'Escape') {
+                closeLightbox();
+            } else if (e.key === 'ArrowLeft') {
+                changeMedia(-1);
+            } else if (e.key === 'ArrowRight') {
+                changeMedia(1);
+            }
+        }
+    });
+});
