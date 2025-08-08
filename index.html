@@ -174,7 +174,7 @@
     
     <!-- Bulletin Board -->
     <div class="bulletin-board">
-        <h1 class="board-title">for Ross, you'll always be in our hearts</h1>
+        <h1 class="board-title">in memoria di Ross, sarai sempre con noi bomberone</h1>
         
         <div class="photos-container" id="photosContainer">
             <!-- Photos will be added here dynamically -->
@@ -285,31 +285,38 @@
             }
             
             let uploadCount = 0;
+            let skippedCount = 0;
             let newPhotos = [];
             
             Array.from(files).forEach(file => {
                 if (!file.type.match('image.*')) return;
                 
-                // Skip duplicate filenames
-                if (uploadedFilenames.has(file.name)) {
+                // Generate unique identifier for each file
+                const fileIdentifier = file.name + '_' + file.size + '_' + file.lastModified;
+                
+                // Skip duplicates based on complete file identity
+                if (uploadedFilenames.has(fileIdentifier)) {
                     alert(`Skipping duplicate: ${file.name}`);
+                    skippedCount++;
                     return;
                 }
                 
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    uploadedFilenames.add(file.name);
+                    uploadedFilenames.add(fileIdentifier);
                     
                     const newPhoto = {
-                        filename: file.name,
-                        dataUrl: e.target.result
+                        filename: fileIdentifier,  // Store the unique identifier
+                        originalName: file.name,  // Store original filename for reference
+                        dataUrl: e.target.result,
+                        uploadedAt: new Date().toISOString()
                     };
                     
                     newPhotos.push(newPhoto);
                     uploadCount++;
                     
                     // Final processing after all files
-                    if (uploadCount === files.length - skippedCount) {
+                    if (uploadCount === (files.length - skippedCount)) {
                         if (newPhotos.length > 0) {
                             const savedPhotos = JSON.parse(localStorage.getItem('memorialPhotos')) || initialPhotos;
                             savedPhotos.push(...newPhotos);
@@ -318,7 +325,11 @@
                         }
                         
                         fileInput.value = '';
-                        alert(`Added ${newPhotos.length} photos to the board`);
+                        if (skippedCount > 0) {
+                            alert(`Added ${newPhotos.length} photos (skipped ${skippedCount} duplicates)`);
+                        } else {
+                            alert(`Added ${newPhotos.length} photos to the board`);
+                        }
                     }
                 };
                 reader.readAsDataURL(file);
